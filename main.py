@@ -15,3 +15,4 @@ if __name__ == '__main__':
 
     tokens = lex.tokenize(code)
     par.parse(tokens)
+    par.finish()

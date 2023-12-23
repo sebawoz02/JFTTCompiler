@@ -14,4 +14,5 @@ class CodeGenerator:
         self.code_file.write("STORE h\n")
 
     def close(self):
+        self.code_file.write("HALT\n")
         self.code_file.close()

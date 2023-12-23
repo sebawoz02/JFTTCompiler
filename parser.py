@@ -11,6 +11,9 @@ class Parser(SlyPar):
         super().__init__()
         self.cg = CodeGenerator(out)
 
+    def finish(self):
+        self.cg.close()
+
     @_('procedures main')
     def program_all(self, p):
         pass
