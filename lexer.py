@@ -59,5 +59,4 @@ class Lexer(SlyLex):
 
     def error(self, t):
         print(f"Syntax error: Illegal character '{t.value[0]}' at line {t.lineno}")
-        self.index += 1
         exit(1)

@@ -1,10 +1,15 @@
 from sly import Parser as SlyPar
 from lexer import Lexer
+from code_generator import CodeGenerator
 
 
 class Parser(SlyPar):
 
     tokens = Lexer.tokens
+
+    def __init__(self, out):
+        super().__init__()
+        self.cg = CodeGenerator(out)
 
     @_('procedures main')
     def program_all(self, p):
@@ -40,7 +45,7 @@ class Parser(SlyPar):
 
     @_('identifier ASSIGN expression ";"')
     def command(self, p):
-        pass
+        self.cg.assign(p.expression[1])
 
     @_('IF condition THEN commands ELSE commands ENDIF')
     def command(self, p):
@@ -120,7 +125,7 @@ class Parser(SlyPar):
 
     @_('value')
     def expression(self, p):
-        pass
+        return p
 
     @_('value "+" value')
     def expression(self, p):
@@ -168,7 +173,7 @@ class Parser(SlyPar):
 
     @_('NUM')
     def value(self, p):
-        pass
+        return int(p.NUM)
 
     @_('identifier')
     def value(self, p):
