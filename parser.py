@@ -1,6 +1,7 @@
 from sly import Parser as SlyPar
 from lexer import Lexer
 from code_generator import CodeGenerator
+from data import Data
 
 
 class Parser(SlyPar):
@@ -10,9 +11,15 @@ class Parser(SlyPar):
     def __init__(self, out):
         super().__init__()
         self.cg = CodeGenerator(out)
+        self.data = Data()
+        self.error = False
 
     def finish(self):
         self.cg.close()
+        if self.error:
+            print("Compilation failed!")
+        else:
+            print("Compilation completed successfully!")
 
     @_('procedures main')
     def program_all(self, p):
@@ -48,7 +55,10 @@ class Parser(SlyPar):
 
     @_('identifier ASSIGN expression ";"')
     def command(self, p):
-        self.cg.assign(p.expression[1])
+        if p.expression[1][1] == 'NUM':
+            self.cg.assign_number(p.expression[1][0], p.identifier)
+        elif p.expression[1][1] == 'PIDENTIFIER':
+            self.cg.assign_identifier(p.expression[1][0], p.identifier)
 
     @_('IF condition THEN commands ELSE commands ENDIF')
     def command(self, p):
@@ -88,19 +98,31 @@ class Parser(SlyPar):
 
     @_('declarations "," PIDENTIFIER')
     def declarations(self, p):
-        pass
+        try:
+            self.data.allocate(1, p.PIDENTIFIER)
+        except NameError:
+            self.error = True
 
     @_('declarations "," PIDENTIFIER "[" NUM "]"')
     def declarations(self, p):
-        pass
+        try:
+            self.data.allocate(p.NUM, p.PIDENTIFIER)
+        except NameError:
+            self.error = True
 
     @_('PIDENTIFIER')
     def declarations(self, p):
-        pass
+        try:
+            self.data.allocate(1, p.PIDENTIFIER)
+        except NameError:
+            self.error = True
 
     @_('PIDENTIFIER "[" NUM "]"')
     def declarations(self, p):
-        pass
+        try:
+            self.data.allocate(p.NUM, p.PIDENTIFIER)
+        except NameError:
+            self.error = True
 
     @_('args_decl "," PIDENTIFIER')
     def args_decl(self, p):
@@ -176,20 +198,29 @@ class Parser(SlyPar):
 
     @_('NUM')
     def value(self, p):
-        return int(p.NUM)
+        return int(p.NUM), 'NUM'
 
     @_('identifier')
     def value(self, p):
-        pass
+        return p.identifier, 'PIDENTIFIER'
 
     @_('PIDENTIFIER')
     def identifier(self, p):
-        pass
+        try:
+            return self.data.get_index(p.PIDENTIFIER)
+        except NameError:
+            self.error = True
 
     @_('PIDENTIFIER "[" NUM "]"')
     def identifier(self, p):
-        pass
+        try:
+            return self.data.get_index(p.PIDENTIFIER) + int(p.NUM)
+        except NameError:
+            self.error = True
 
     @_('PIDENTIFIER "[" PIDENTIFIER "]"')
     def identifier(self, p):
-        pass
+        try:
+            return self.data.get_index(p[0]) + self.data.get_index(p[2])
+        except NameError:
+            self.error = True
