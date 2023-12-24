@@ -56,6 +56,29 @@ class CodeGenerator:
         return lines + 1
 
     """
+    OTHER COMMANDS
+    """
+
+    def command_write(self, value):
+        # value = [idx/number, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code]
+        lines = 0
+        if value[1] == 'NUM':
+            lines += self.get_number_in_register(value[0], 'a')
+        elif value[1] == 'PIDENTIFIER':
+            lines += self.get_number_in_register(value[0], 'h')
+            self.write('LOAD h\n')
+            lines += 1
+        # if value[1] == 'EXPRESSION' its already in register a
+        self.write('WRITE\n')
+        return lines + 1
+
+    def command_read(self, idx):
+        self.write("READ\n")
+        lines = self.get_number_in_register(idx, 'h')
+        self.write("STORE h\n")
+        return lines + 2
+
+    """
     ARITHMETICAL OPERATIONS
     """
 

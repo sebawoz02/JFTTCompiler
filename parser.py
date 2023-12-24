@@ -43,19 +43,19 @@ class Parser(SlyPar):
 
     @_('PROGRAM IS declarations IN commands END')
     def main(self, p):
-        pass
+        print(p[4])
 
     @_('PROGRAM IS IN commands END')
     def main(self, p):
-        pass
+        print(p[3])
 
     @_('commands command')
     def commands(self, p):
-        pass
+        return p[0] + p[1]
 
     @_('command')
     def commands(self, p):
-        pass
+        return p[0]
 
     @_('identifier ASSIGN expression ";"')
     def command(self, p):
@@ -67,7 +67,7 @@ class Parser(SlyPar):
         elif p.expression[1] == 'NUM':
             return self.cg.assign_number(p.expression[0], p.identifier)
         elif p.expression[1][1] == 'PIDENTIFIER':
-            return self.cg.assign_identifier(p.expression[1][0], p.identifier)
+            return self.cg.assign_identifier(p.identifier, p.expression[1][0])
         else:
             return self.cg.store(p.identifier) + p.expression[2]
 
@@ -93,11 +93,11 @@ class Parser(SlyPar):
 
     @_('READ identifier ";"')
     def command(self, p):
-        pass
+        return self.cg.command_read(p[1])
 
     @_('WRITE value ";"')
     def command(self, p):
-        pass
+        return self.cg.command_write(p[1])
 
     @_('PIDENTIFIER "(" args_decl ")"')
     def proc_head(self, p):
