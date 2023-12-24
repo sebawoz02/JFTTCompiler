@@ -12,14 +12,18 @@ class Parser(SlyPar):
         super().__init__()
         self.cg = CodeGenerator(out)
         self.data = Data()
-        self.error = False
 
     def finish(self):
         self.cg.close()
-        if self.error:
+        print("Compilation completed successfully!")
+
+    def EXCEPTION_WRAPPER(self, ex, func, *args):
+        try:
+            return func(*args)
+        except ex:
+            self.cg.close()
             print("Compilation failed!")
-        else:
-            print("Compilation completed successfully!")
+            exit(1)
 
     @_('procedures main')
     def program_all(self, p):
@@ -55,10 +59,17 @@ class Parser(SlyPar):
 
     @_('identifier ASSIGN expression ";"')
     def command(self, p):
+        # p = ('expression', [idx, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code]
+        # or just
+        # [idx, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code]
         if p.expression[1][1] == 'NUM':
-            self.cg.assign_number(p.expression[1][0], p.identifier)
+            return self.cg.assign_number(p.expression[1][0], p.identifier)
+        elif p.expression[1] == 'NUM':
+            return self.cg.assign_number(p.expression[0], p.identifier)
         elif p.expression[1][1] == 'PIDENTIFIER':
-            self.cg.assign_identifier(p.expression[1][0], p.identifier)
+            return self.cg.assign_identifier(p.expression[1][0], p.identifier)
+        else:
+            return self.cg.store(p.identifier) + p.expression[2]
 
     @_('IF condition THEN commands ELSE commands ENDIF')
     def command(self, p):
@@ -98,31 +109,19 @@ class Parser(SlyPar):
 
     @_('declarations "," PIDENTIFIER')
     def declarations(self, p):
-        try:
-            self.data.allocate(1, p.PIDENTIFIER)
-        except NameError:
-            self.error = True
+        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, 1, p.PIDENTIFIER)
 
     @_('declarations "," PIDENTIFIER "[" NUM "]"')
     def declarations(self, p):
-        try:
-            self.data.allocate(p.NUM, p.PIDENTIFIER)
-        except NameError:
-            self.error = True
+        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, p.NUM, p.PIDENTIFIER)
 
     @_('PIDENTIFIER')
     def declarations(self, p):
-        try:
-            self.data.allocate(1, p.PIDENTIFIER)
-        except NameError:
-            self.error = True
+        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, 1, p.PIDENTIFIER)
 
     @_('PIDENTIFIER "[" NUM "]"')
     def declarations(self, p):
-        try:
-            self.data.allocate(p.NUM, p.PIDENTIFIER)
-        except NameError:
-            self.error = True
+        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, p.NUM, p.PIDENTIFIER)
 
     @_('args_decl "," PIDENTIFIER')
     def args_decl(self, p):
@@ -154,7 +153,7 @@ class Parser(SlyPar):
 
     @_('value "+" value')
     def expression(self, p):
-        pass
+        return self.cg.add(p[0], p[2])
 
     @_('value "-" value')
     def expression(self, p):
@@ -198,29 +197,21 @@ class Parser(SlyPar):
 
     @_('NUM')
     def value(self, p):
-        return int(p.NUM), 'NUM'
+        return int(p.NUM), 'NUM', 0
 
     @_('identifier')
     def value(self, p):
-        return p.identifier, 'PIDENTIFIER'
+        return p.identifier, 'PIDENTIFIER', 0
 
     @_('PIDENTIFIER')
     def identifier(self, p):
-        try:
-            return self.data.get_index(p.PIDENTIFIER)
-        except NameError:
-            self.error = True
+        return self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p.PIDENTIFIER)
 
     @_('PIDENTIFIER "[" NUM "]"')
     def identifier(self, p):
-        try:
-            return self.data.get_index(p.PIDENTIFIER) + int(p.NUM)
-        except NameError:
-            self.error = True
+        return self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p.PIDENTIFIER) + int(p.NUM)
 
     @_('PIDENTIFIER "[" PIDENTIFIER "]"')
     def identifier(self, p):
-        try:
-            return self.data.get_index(p[0]) + self.data.get_index(p[2])
-        except NameError:
-            self.error = True
+        return (self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p[0]) +
+                self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p[2]))

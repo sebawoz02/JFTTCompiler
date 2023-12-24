@@ -6,42 +6,76 @@ class CodeGenerator:
         self.line = 1
         self.code_file = open(out, 'w')
 
+    def write(self, string):
+        self.code_file.write(string)
+        self.line += 1
+
+    def close(self):
+        self.write("HALT\n")
+        self.code_file.close()
+
+    def get_number_in_register(self, number, register):
+        self.write(f"RST {register}\n")
+        lines = 1
+        if number != 0:
+            self.write(f"INC {register}\n")
+            lines += 1
+            operations = algorithms.reach_target_number(number)
+            for operation in operations:
+                self.write(operation + f" {register}\n")
+                lines += 1
+        return lines
+
+    """
+    ASSIGN
+    """
+
     # PIDENTIFIER ASSIGN NUM
     # save the number at a given index in memory
+    # Returns number of lines written
     def assign_number(self, num, idx):
         # Get expected number in register a
-        self.code_file.write("RST a\n")
-        if num != 0:
-            self.code_file.write("INC a\n")
-            operations = algorithms.reach_target_number(num)
-            for operation in operations:
-                self.code_file.write(operation + " a\n")
+        lines = self.get_number_in_register(num, 'a')
         # Save it in memory
-        self.store(idx)
+        return lines + self.store(idx)
 
     # PIDENTIFIER ASSIGN pidentifier
     # save/copy the number from one index in memory under the other
+    # Returns number of lines written
     def assign_identifier(self, idx1, idx2):
-        self.code_file.write("RST h\n")
-        if idx2 != 0:
-            self.code_file.write("INC h\n")
-            operations = algorithms.reach_target_number(idx2)
-            for operation in operations:
-                self.code_file.write(operation + " h\n")
-        self.code_file.write("LOAD h\n")
-        self.store(idx1)
+        lines = self.get_number_in_register(idx2, 'h')
+        self.write("LOAD h\n")
+        return lines + 1 + self.store(idx1)
 
     # STORE
     # save value from register 'a' at given idx in memory
+    # Returns number of lines written
     def store(self, idx):
-        self.code_file.write("RST h\n")
-        if idx != 0:
-            self.code_file.write("INC h\n")
-            operations = algorithms.reach_target_number(idx)
-            for operation in operations:
-                self.code_file.write(operation + " h\n")
-        self.code_file.write("STORE h\n")
+        lines = self.get_number_in_register(idx, 'h')
+        self.write("STORE h\n")
+        return lines + 1
 
-    def close(self):
-        self.code_file.write("HALT\n")
-        self.code_file.close()
+    """
+    ARITHMETICAL OPERATIONS
+    """
+
+    def add(self, value1, value2):
+        if value1[1] == 'NUM' and value2[1] == 'NUM':
+            return value1[0] + value2[0], 'NUM', 0
+        lines = 0
+        if value2[1] == 'PIDENTIFIER':
+            lines += self.get_number_in_register(value2[0], 'h')
+            self.write("LOAD h\n")
+            self.write("PUT b\n")
+            lines += 2
+        else:
+            lines += self.get_number_in_register(value2[0], 'b')
+        if value1[1] == 'PIDENTIFIER':
+            lines += self.get_number_in_register(value1[0], 'h')
+            self.write("LOAD h\n")
+            lines += 1
+        else:
+            lines += self.get_number_in_register(value1[0], 'a')
+        self.write("ADD b\n")
+        return None, 'EXPRESSION', lines + 1
+
