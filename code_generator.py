@@ -134,3 +134,35 @@ class CodeGenerator:
         self.write('JPOS ')
         return lines + 3
 
+    def op_neq(self, value1, value2):
+        # NEQ - max(v1 - v2, 0) + max(v2 - v1, 0) > 0
+        lines = self.add_sub(value1, value2, mode='sub')[2]
+        self.write('PUT c\n')
+        lines += self.add_sub(value2, value1, mode='sub')[2]
+        self.write('ADD c\n')
+        self.write('JZERO ')
+        return lines + 3
+
+    def op_gt(self, value1, value2):
+        # GT - max(v1 - v2, 0) > 0
+        lines = self.add_sub(value1, value2, mode='sub')[2]
+        self.write('JZERO ')
+        return lines + 1
+
+    def op_lt(self, value1, value2):
+        # LT - max(v2 - v1, 0) > 0
+        lines = self.add_sub(value2, value1, mode='sub')[2]
+        self.write('JZERO ')
+        return lines + 1
+
+    def op_geq(self, value1, value2):
+        # GEQ - max(v2 - v1, 0) == 0
+        lines = self.add_sub(value2, value1, mode='sub')[2]
+        self.write('JPOS ')
+        return lines + 1
+
+    def op_leq(self, value1, value2):
+        # LEQ - max(v1 - v2, 0) == 0
+        lines = self.add_sub(value1, value2, mode='sub')[2]
+        self.write('JPOS ')
+        return lines + 1

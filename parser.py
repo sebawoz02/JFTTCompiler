@@ -188,23 +188,33 @@ class Parser(SlyPar):
 
     @_('value NEQ value')
     def condition(self, p):
-        pass
+        lines = self.cg.op_neq(p[0], p[2])
+        self.cg.set_block_mode()
+        return lines
 
     @_('value GT value')
     def condition(self, p):
-        pass
+        lines = self.cg.op_gt(p[0], p[2])
+        self.cg.set_block_mode()
+        return lines
 
     @_('value LT value')
     def condition(self, p):
-        pass
+        lines = self.cg.op_lt(p[0], p[2])
+        self.cg.set_block_mode()
+        return lines
 
     @_('value GEQ value')
     def condition(self, p):
-        pass
+        lines = self.cg.op_geq(p[0], p[2])
+        self.cg.set_block_mode()
+        return lines
 
     @_('value LEQ value')
     def condition(self, p):
-        pass
+        lines = self.cg.op_leq(p[0], p[2])
+        self.cg.set_block_mode()
+        return lines
 
     @_('NUM')
     def value(self, p):
