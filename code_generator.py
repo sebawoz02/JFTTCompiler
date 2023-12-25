@@ -3,16 +3,32 @@ import algorithms
 
 class CodeGenerator:
     def __init__(self, out):
-        self.line = 1
+        self.line = 0
         self.code_file = open(out, 'w')
+        self.block_mode = False
+        self.block_buffer = []
 
     def write(self, string):
-        self.code_file.write(string)
-        self.line += 1
+        if self.block_mode:
+            self.block_buffer.append(string)
+        else:
+            self.code_file.write(string)
+            self.line += 1
 
     def close(self):
         self.write("HALT\n")
         self.code_file.close()
+
+    def set_block_mode(self):
+        self.block_mode = True
+
+    def flush_block_buffer(self, line_num):
+        # JPOS line_num
+        self.block_mode = False
+        self.write(f'{line_num}\n')
+        for line in self.block_buffer:
+            self.write(line)
+        self.block_buffer = []
 
     def get_number_in_register(self, number, register):
         self.write(f"RST {register}\n")
@@ -82,7 +98,7 @@ class CodeGenerator:
     ARITHMETICAL OPERATIONS
     """
 
-    def add(self, value1, value2):
+    def add_sub(self, value1, value2, mode='add') -> (None, str, int):
         if value1[1] == 'NUM' and value2[1] == 'NUM':
             return value1[0] + value2[0], 'NUM', 0
         lines = 0
@@ -99,6 +115,22 @@ class CodeGenerator:
             lines += 1
         else:
             lines += self.get_number_in_register(value1[0], 'a')
-        self.write("ADD b\n")
+        if mode == 'add':
+            self.write("ADD b\n")
+        else:
+            self.write("SUB b\n")
         return None, 'EXPRESSION', lines + 1
+
+    """
+    LOGICAL OPERATIONS
+    """
+
+    def op_eq(self, value1, value2):
+        # EQ - max(v1 - v2, 0) + max(v2 - v1, 0) == 0
+        lines = self.add_sub(value1, value2, mode='sub')[2]
+        self.write('PUT c\n')
+        lines += self.add_sub(value2, value1, mode='sub')[2]
+        self.write('ADD c\n')
+        self.write('JPOS ')
+        return lines + 3
 

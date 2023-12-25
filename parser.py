@@ -30,15 +30,15 @@ class Parser(SlyPar):
         pass
 
     @_('procedures PROCEDURE proc_head IS declarations IN commands END')
-    def procedures(self, p):
+    def procedures(self, p):        # TODO: procedures
         pass
 
     @_('procedures PROCEDURE proc_head IS IN commands END')
-    def procedures(self, p):
+    def procedures(self, p):        # TODO: procedures
         pass
 
     @_('')
-    def procedures(self, p):
+    def procedures(self, p):        # TODO: procedures
         pass
 
     @_('PROGRAM IS declarations IN commands END')
@@ -73,21 +73,30 @@ class Parser(SlyPar):
 
     @_('IF condition THEN commands ELSE commands ENDIF')
     def command(self, p):
-        pass
+        total_lines = self.cg.line
+        self.cg.flush_block_buffer(total_lines + p[3])
+        return p[1] + p[3] + p[5]
 
     @_('IF condition THEN commands ENDIF')
     def command(self, p):
-        pass
+        total_lines = self.cg.line
+        self.cg.flush_block_buffer(total_lines + p[3])
+        return p[1] + p[3]
 
     @_('WHILE condition DO commands ENDWHILE')
     def command(self, p):
-        pass
+        total_lines = self.cg.line
+        self.cg.flush_block_buffer(total_lines + p[3] + 1)
+        self.cg.write(f'JUMP {total_lines - p[1]}\n')
+        return p[1] + p[3] + 1
 
     @_('REPEAT commands UNTIL condition ";"')
     def command(self, p):
-        pass
+        self.cg.block_mode = False
+        self.cg.write(f'{self.cg.line - p[1] - p[3]}\n')
+        return p[1] + p[3]
 
-    @_('proc_call ";"')
+    @_('proc_call ";"')     # TODO: procedures
     def command(self, p):
         pass
 
@@ -100,11 +109,11 @@ class Parser(SlyPar):
         return self.cg.command_write(p[1])
 
     @_('PIDENTIFIER "(" args_decl ")"')
-    def proc_head(self, p):
+    def proc_head(self, p):     # TODO: procedures
         pass
 
     @_('PIDENTIFIER "(" args ")"')
-    def proc_call(self, p):
+    def proc_call(self, p):     # TODO: procedures
         pass
 
     @_('declarations "," PIDENTIFIER')
@@ -124,27 +133,27 @@ class Parser(SlyPar):
         self.EXCEPTION_WRAPPER(NameError, self.data.allocate, p.NUM, p.PIDENTIFIER)
 
     @_('args_decl "," PIDENTIFIER')
-    def args_decl(self, p):
+    def args_decl(self, p):     # TODO: procedures
         pass
 
     @_('args_decl "," "T" PIDENTIFIER')
-    def args_decl(self, p):
+    def args_decl(self, p):     # TODO: procedures
         pass
 
     @_('PIDENTIFIER')
-    def args_decl(self, p):
+    def args_decl(self, p):     # TODO: procedures
         pass
 
     @_('"T" PIDENTIFIER')
-    def args_decl(self, p):
+    def args_decl(self, p):     # TODO: procedures
         pass
 
     @_('args "," PIDENTIFIER')
-    def args(self, p):
+    def args(self, p):          # TODO: procedures
         pass
 
     @_('PIDENTIFIER')
-    def args(self, p):
+    def args(self, p):          # TODO: procedures
         pass
 
     @_('value')
@@ -153,27 +162,29 @@ class Parser(SlyPar):
 
     @_('value "+" value')
     def expression(self, p):
-        return self.cg.add(p[0], p[2])
+        return self.cg.add_sub(p[0], p[2])
 
     @_('value "-" value')
     def expression(self, p):
-        pass
+        return self.cg.add_sub(p[0], p[2], mode='sub')
 
     @_('value "*" value')
-    def expression(self, p):
+    def expression(self, p):    # TODO: multiplication
         pass
 
     @_('value "/" value')
-    def expression(self, p):
+    def expression(self, p):    # TODO: div
         pass
 
     @_('value "%" value')
-    def expression(self, p):
+    def expression(self, p):    # TODO: div
         pass
 
     @_('value EQ value')
     def condition(self, p):
-        pass
+        lines = self.cg.op_eq(p[0], p[2])
+        self.cg.set_block_mode()
+        return lines
 
     @_('value NEQ value')
     def condition(self, p):
