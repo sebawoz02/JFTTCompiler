@@ -71,29 +71,32 @@ class Parser(SlyPar):
         else:
             return self.cg.store(p.identifier) + p.expression[2]
 
-    @_('IF condition THEN commands ELSE commands ENDIF')
+    @_('IF condition THEN commands ELSE commands ENDIF')    # TODO: fix commmands after ELSE reveives wrong lines number
     def command(self, p):
         total_lines = self.cg.line
-        self.cg.flush_block_buffer(total_lines + p[3])
-        return p[1] + p[3] + p[5]
+        self.cg.block_buffer[self.cg.block_level - 1].insert(p[3] + 1, f'JUMP {total_lines + 1}\n')
+        self.cg.line += 1
+        # fix jumps after ELSE
+
+        self.cg.flush_block_buffer(total_lines - p[5] + 1)
+        return p[1] + p[3] + p[5] + 1
 
     @_('IF condition THEN commands ENDIF')
     def command(self, p):
         total_lines = self.cg.line
-        self.cg.flush_block_buffer(total_lines + p[3])
+        self.cg.flush_block_buffer(total_lines + p[3] + 1)
         return p[1] + p[3]
 
     @_('WHILE condition DO commands ENDWHILE')
     def command(self, p):
         total_lines = self.cg.line
-        self.cg.flush_block_buffer(total_lines + p[3] + 1)
-        self.cg.write(f'JUMP {total_lines - p[1]}\n')
+        self.cg.flush_block_buffer(total_lines + 1)
+        self.cg.write(f'JUMP {total_lines - p[1] - p[3]}\n')
         return p[1] + p[3] + 1
 
     @_('REPEAT commands UNTIL condition ";"')
     def command(self, p):
-        self.cg.block_mode = False
-        self.cg.write(f'{self.cg.line - p[1] - p[3]}\n')
+        self.cg.flush_block_buffer(self.cg.line - p[1] - p[3])
         return p[1] + p[3]
 
     @_('proc_call ";"')     # TODO: procedures
@@ -183,37 +186,31 @@ class Parser(SlyPar):
     @_('value EQ value')
     def condition(self, p):
         lines = self.cg.op_eq(p[0], p[2])
-        self.cg.set_block_mode()
         return lines
 
     @_('value NEQ value')
     def condition(self, p):
         lines = self.cg.op_neq(p[0], p[2])
-        self.cg.set_block_mode()
         return lines
 
     @_('value GT value')
     def condition(self, p):
         lines = self.cg.op_gt(p[0], p[2])
-        self.cg.set_block_mode()
         return lines
 
     @_('value LT value')
     def condition(self, p):
         lines = self.cg.op_lt(p[0], p[2])
-        self.cg.set_block_mode()
         return lines
 
     @_('value GEQ value')
     def condition(self, p):
         lines = self.cg.op_geq(p[0], p[2])
-        self.cg.set_block_mode()
         return lines
 
     @_('value LEQ value')
     def condition(self, p):
         lines = self.cg.op_leq(p[0], p[2])
-        self.cg.set_block_mode()
         return lines
 
     @_('NUM')

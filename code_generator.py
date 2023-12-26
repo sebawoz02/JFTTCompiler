@@ -5,30 +5,36 @@ class CodeGenerator:
     def __init__(self, out):
         self.line = 0
         self.code_file = open(out, 'w')
-        self.block_mode = False
+        self.block_level = 0
         self.block_buffer = []
 
     def write(self, string):
-        if self.block_mode:
-            self.block_buffer.append(string)
+        if self.block_level != 0:
+            self.block_buffer[self.block_level - 1].append(string)
         else:
             self.code_file.write(string)
-            self.line += 1
+        self.line += 1
 
     def close(self):
         self.write("HALT\n")
         self.code_file.close()
 
-    def set_block_mode(self):
-        self.block_mode = True
+    def inc_block_level(self):
+        self.block_level += 1
+        self.block_buffer.append([])
 
     def flush_block_buffer(self, line_num):
-        # JPOS line_num
-        self.block_mode = False
-        self.write(f'{line_num}\n')
-        for line in self.block_buffer:
-            self.write(line)
-        self.block_buffer = []
+        # JPOS/JZERO line_num
+        self.block_level -= 1
+        self.block_buffer[self.block_level][0] += f'{line_num}\n'
+        if self.block_level == 0:
+            for line in self.block_buffer[0]:
+                self.code_file.write(line)
+        else:
+            # Merge nested block
+            for line in self.block_buffer[self.block_level]:
+                self.block_buffer[self.block_level - 1].append(line)
+        self.block_buffer.pop()
 
     def get_number_in_register(self, number, register):
         self.write(f"RST {register}\n")
@@ -131,6 +137,7 @@ class CodeGenerator:
         self.write('PUT c\n')
         lines += self.add_sub(value2, value1, mode='sub')[2]
         self.write('ADD c\n')
+        self.inc_block_level()
         self.write('JPOS ')
         return lines + 3
 
@@ -140,29 +147,34 @@ class CodeGenerator:
         self.write('PUT c\n')
         lines += self.add_sub(value2, value1, mode='sub')[2]
         self.write('ADD c\n')
+        self.inc_block_level()
         self.write('JZERO ')
         return lines + 3
 
     def op_gt(self, value1, value2):
         # GT - max(v1 - v2, 0) > 0
         lines = self.add_sub(value1, value2, mode='sub')[2]
+        self.inc_block_level()
         self.write('JZERO ')
         return lines + 1
 
     def op_lt(self, value1, value2):
         # LT - max(v2 - v1, 0) > 0
         lines = self.add_sub(value2, value1, mode='sub')[2]
+        self.inc_block_level()
         self.write('JZERO ')
         return lines + 1
 
     def op_geq(self, value1, value2):
         # GEQ - max(v2 - v1, 0) == 0
         lines = self.add_sub(value2, value1, mode='sub')[2]
+        self.inc_block_level()
         self.write('JPOS ')
         return lines + 1
 
     def op_leq(self, value1, value2):
         # LEQ - max(v1 - v2, 0) == 0
         lines = self.add_sub(value1, value2, mode='sub')[2]
+        self.inc_block_level()
         self.write('JPOS ')
         return lines + 1
