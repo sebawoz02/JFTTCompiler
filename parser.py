@@ -71,13 +71,13 @@ class Parser(SlyPar):
         else:
             return self.cg.store(p.identifier) + p.expression[2]
 
-    @_('IF condition THEN commands ELSE commands ENDIF')    # TODO: fix commmands after ELSE reveives wrong lines number
+    @_('IF condition THEN commands ELSE commands ENDIF')
     def command(self, p):
         total_lines = self.cg.line
         self.cg.block_buffer[self.cg.block_level - 1].insert(p[3] + 1, f'JUMP {total_lines + 1}\n')
         self.cg.line += 1
         # fix jumps after ELSE
-
+        self.cg.fix_else_jumps(p[3]+2)
         self.cg.flush_block_buffer(total_lines - p[5] + 1)
         return p[1] + p[3] + p[5] + 1
 

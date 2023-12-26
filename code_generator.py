@@ -1,4 +1,5 @@
 import algorithms
+import re
 
 
 class CodeGenerator:
@@ -18,23 +19,6 @@ class CodeGenerator:
     def close(self):
         self.write("HALT\n")
         self.code_file.close()
-
-    def inc_block_level(self):
-        self.block_level += 1
-        self.block_buffer.append([])
-
-    def flush_block_buffer(self, line_num):
-        # JPOS/JZERO line_num
-        self.block_level -= 1
-        self.block_buffer[self.block_level][0] += f'{line_num}\n'
-        if self.block_level == 0:
-            for line in self.block_buffer[0]:
-                self.code_file.write(line)
-        else:
-            # Merge nested block
-            for line in self.block_buffer[self.block_level]:
-                self.block_buffer[self.block_level - 1].append(line)
-        self.block_buffer.pop()
 
     def get_number_in_register(self, number, register):
         self.write(f"RST {register}\n")
@@ -178,3 +162,36 @@ class CodeGenerator:
         self.inc_block_level()
         self.write('JPOS ')
         return lines + 1
+
+    """
+    IF, IF_ELSE, WHILE, REPEAT
+    """
+
+    def inc_block_level(self):
+        self.block_level += 1
+        self.block_buffer.append([])
+
+    def flush_block_buffer(self, line_num):
+        # JPOS/JZERO line_num
+        self.block_level -= 1
+        self.block_buffer[self.block_level][0] += f'{line_num}\n'
+        if self.block_level == 0:
+            for line in self.block_buffer[0]:
+                self.code_file.write(line)
+        else:
+            # Merge nested block
+            for line in self.block_buffer[self.block_level]:
+                self.block_buffer[self.block_level - 1].append(line)
+        self.block_buffer.pop()
+
+    def fix_else_jumps(self, idx):
+        for i in range(idx, len(self.block_buffer[self.block_level - 1])):
+            # Check if the string begins with 'JUMP', 'JPOS', or 'JZERO'
+            if self.block_buffer[self.block_level - 1][i].startswith(('JUMP', 'JPOS', 'JZERO')):
+                match = re.search(r'\d+', self.block_buffer[self.block_level - 1][i])
+                if match:
+                    # Increase the number by 1
+                    number = int(match.group()) + 1
+                    self.block_buffer[self.block_level - 1][i] = re.sub(r'\d+',
+                                                                        str(number),
+                                                                        self.block_buffer[self.block_level - 1][i])
