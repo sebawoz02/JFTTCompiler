@@ -128,8 +128,12 @@ class Parser(SlyPar):
     @_('PIDENTIFIER "(" args ")"')
     def proc_call(self, p):
         if self.pg.definition:
+            if p[0] == self.pg.current_procedure_name:
+                print(f"\033[91mError at line {p.lineno} in procedure '{p[0]}': Recursion is prohibited!\033[0m")
+                self.cg.close()
+                exit(1)
             self.pg.add_step(self.pg.generate_procedure, [p[0], p[2]], [None, None])
-        return self.pg.generate_procedure(p[0], p[2])
+        return self.EXCEPTION_WRAPPER(NameError, self.pg.generate_procedure, p[0], p[2])
 
     @_('declarations "," PIDENTIFIER')
     def declarations(self, p):
@@ -209,33 +213,27 @@ class Parser(SlyPar):
 
     @_('value EQ value')
     def condition(self, p):
-        lines = self.cg.op_eq(p[0], p[2])          # TODO: procedures
-        return lines
+        return self.cg.op_eq(p[0], p[2])          # TODO: procedures
 
     @_('value NEQ value')
     def condition(self, p):
-        lines = self.cg.op_neq(p[0], p[2])          # TODO: procedures
-        return lines
+        return self.cg.op_neq(p[0], p[2])          # TODO: procedures
 
     @_('value GT value')
     def condition(self, p):
-        lines = self.cg.op_gt(p[0], p[2])          # TODO: procedures
-        return lines
+        return self.cg.op_gt(p[0], p[2])          # TODO: procedures
 
     @_('value LT value')
     def condition(self, p):
-        lines = self.cg.op_lt(p[0], p[2])          # TODO: procedures
-        return lines
+        return self.cg.op_lt(p[0], p[2])          # TODO: procedures
 
     @_('value GEQ value')
     def condition(self, p):
-        lines = self.cg.op_geq(p[0], p[2])          # TODO: procedures
-        return lines
+        return self.cg.op_geq(p[0], p[2])          # TODO: procedures
 
     @_('value LEQ value')
     def condition(self, p):
-        lines = self.cg.op_leq(p[0], p[2])          # TODO: procedures
-        return lines
+        return self.cg.op_leq(p[0], p[2])          # TODO: procedures
 
     @_('NUM')
     def value(self, p):
@@ -265,3 +263,9 @@ class Parser(SlyPar):
             return (p[0], p[2]), 'AKU'
         return (self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[0]),
                 self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[2])), 'AKU', 0
+
+    def error(self, p):
+        self.cg.close()
+        print(f"\033[91mSyntax error at line {p.lineno}: Unexpected token '{p.type}'\033[0m")
+        print("Compilation failed!")
+        exit(1)
