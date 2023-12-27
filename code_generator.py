@@ -14,6 +14,7 @@ class CodeGenerator:
         else:
             self.code_file.write(string)
         self.line += 1
+        return 1
 
     def close(self):
         self.write("HALT\n")
@@ -49,6 +50,9 @@ class CodeGenerator:
     """
     ASSIGN
     """
+
+    def generate_assign(self, identifier, expression):
+        return assign.generate_assign(self, identifier, expression)
 
     def assign_number(self, num, idx, address_in_c=False):
         return assign.assign_number(self, num, idx, address_in_c)
