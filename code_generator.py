@@ -82,6 +82,9 @@ class CodeGenerator:
     def add_sub(self, value1, value2, mode='add') -> (None, str, int):
         return arithmetic.add_sub(self, value1, value2, mode)
 
+    def multiply(self, value1, value2) -> (None, str, int):
+        return arithmetic.multiply(self, value1, value2)
+
     """
     LOGICAL OPERATIONS
     """

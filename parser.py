@@ -193,8 +193,8 @@ class Parser(SlyPar):
         return self.cg.add_sub(p[0], p[2], mode='sub')
 
     @_('value "*" value')
-    def expression(self, p):    # TODO: multiplication
-        pass
+    def expression(self, p):
+        return self.cg.multiply(p[0], p[2])
 
     @_('value "/" value')
     def expression(self, p):    # TODO: div
