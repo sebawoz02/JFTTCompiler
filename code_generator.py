@@ -85,6 +85,9 @@ class CodeGenerator:
     def multiply(self, value1, value2) -> (None, str, int):
         return arithmetic.multiply(self, value1, value2)
 
+    def divide(self, value1, value2, mode='div') -> (None, str, int):
+        return arithmetic.divide(self, value1, value2, mode)
+
     """
     LOGICAL OPERATIONS
     """

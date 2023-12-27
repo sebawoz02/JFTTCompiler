@@ -2,6 +2,10 @@ from lexer import Lexer
 from parser import Parser
 import sys
 
+# TODO:
+# - procedures
+# - check if variable is set when used
+# - division/modulo
 
 if __name__ == '__main__':
     src = sys.argv[1]

@@ -198,11 +198,11 @@ class Parser(SlyPar):
 
     @_('value "/" value')
     def expression(self, p):    # TODO: div
-        pass
+        return self.cg.divide(p[0], p[2])
 
     @_('value "%" value')
     def expression(self, p):    # TODO: div
-        pass
+        return self.cg.divide(p[0], p[2], mode='modulo')
 
     @_('value EQ value')
     def condition(self, p):
