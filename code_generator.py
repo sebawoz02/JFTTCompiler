@@ -14,6 +14,7 @@ class CodeGenerator:
         else:
             self.code_file.write(string)
         self.line += 1
+        return 1
 
     def close(self):
         self.write("HALT\n")
@@ -50,6 +51,9 @@ class CodeGenerator:
     ASSIGN
     """
 
+    def generate_assign(self, identifier, expression):
+        return assign.generate_assign(self, identifier, expression)
+
     def assign_number(self, num, idx, address_in_c=False):
         return assign.assign_number(self, num, idx, address_in_c)
 
@@ -84,6 +88,9 @@ class CodeGenerator:
 
     def multiply(self, value1, value2) -> (None, str, int):
         return arithmetic.multiply(self, value1, value2)
+
+    def divide(self, value1, value2, mode='div') -> (None, str, int):
+        return arithmetic.divide(self, value1, value2, mode)
 
     """
     LOGICAL OPERATIONS

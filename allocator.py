@@ -1,4 +1,4 @@
-class Data:
+class Allocator:
 
     def __init__(self):
         self.variable_indexes = {}
@@ -7,6 +7,9 @@ class Data:
     def allocate(self, no_bytes, identifier):
         if identifier in self.variable_indexes.keys():
             print(f"\033[91mDouble declaration of '{identifier}'!\033[0m")
+            raise NameError
+        if self.cur_idx >= (1 << 62):
+            print(f"\033[91mAllocation error. Out of memory!\033[0m")
             raise NameError
         self.variable_indexes[identifier] = self.cur_idx
         self.cur_idx += no_bytes

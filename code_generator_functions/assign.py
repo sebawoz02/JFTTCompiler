@@ -47,3 +47,36 @@ def load_aku_idx(cg, idx1, idx2):
     cg.write('LOAD a\n')
     cg.write('ADD b\n')
     return lines + 2
+
+
+def generate_assign(cg, identifier, expression):
+    # p[2] = [idx, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code] or [(idx1, idx2), 'AKU', lines_of_code]
+    if identifier[1] == 'AKU':
+        lines = 0
+        if expression[1] == 'EXPRESSION':
+            cg.write("PUT c\n")
+            lines += 1
+        lines += cg.load_aku_idx(identifier[0][0], identifier[0][1])
+        if expression[1] == 'EXPRESSION':
+            cg.write("PUT b\n")
+            cg.write("GET c\n")
+            cg.write("STORE b\n")
+            return lines + 3 + expression[2]
+        else:
+            cg.write("PUT c\n")
+            lines += 1
+        if expression[1] == 'NUM':
+            return cg.assign_number(expression[0], identifier[0], address_in_c=True) + lines
+        elif expression[1] == 'PIDENTIFIER':
+            return cg.assign_identifier(identifier[0], expression[0], address_in_c=True) + lines
+        else:
+            return cg.assign_aku(identifier[0], expression[0][0], expression[0][1], address_in_c=True) + lines
+    else:
+        if expression[1] == 'NUM':
+            return cg.assign_number(expression[0], identifier[0])
+        elif expression[1] == 'PIDENTIFIER':
+            return cg.assign_identifier(identifier[0], expression[0])
+        elif expression[1] == 'AKU':
+            return cg.assign_aku(identifier[0], expression[0][0], expression[0][1])
+        else:
+            return cg.store(identifier[0]) + expression[2]
