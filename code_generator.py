@@ -39,19 +39,32 @@ class CodeGenerator:
     # PIDENTIFIER ASSIGN NUM
     # save the number at a given index in memory
     # Returns number of lines written
-    def assign_number(self, num, idx):
+    def assign_number(self, num, idx, address_in_c=False):
         # Get expected number in register a
         lines = self.get_number_in_register(num, 'a')
+        if address_in_c:
+            self.write("STORE c\n")
+            return lines + 1
         # Save it in memory
         return lines + self.store(idx)
 
     # PIDENTIFIER ASSIGN pidentifier
     # save/copy the number from one index in memory under the other
     # Returns number of lines written
-    def assign_identifier(self, idx1, idx2):
+    def assign_identifier(self, idx1, idx2, address_in_c=False):
         lines = self.get_number_in_register(idx2, 'h')
         self.write("LOAD h\n")
+        if address_in_c:
+            self.write("STORE c\n")
+            return lines + 2
         return lines + 1 + self.store(idx1)
+
+    def assign_aku(self, idx1, idx2, idx3, address_in_c=False):
+        lines = self.load_aku_idx(idx2, idx3)
+        if address_in_c:
+            self.write("STORE c\n")
+            return lines + 1
+        return self.store(idx1) + lines
 
     # STORE
     # save value from register 'a' at given idx in memory
@@ -61,8 +74,16 @@ class CodeGenerator:
         self.write("STORE h\n")
         return lines + 1
 
+    # Loads memory address of PIDENTIFIER[PIDENTIFIER] to register 'a'
+    def load_aku_idx(self, idx1, idx2):
+        lines = self.get_number_in_register(idx1, 'b')
+        lines += self.get_number_in_register(idx2, 'a')
+        self.write('LOAD a\n')
+        self.write('ADD b\n')
+        return lines + 2
+
     """
-    OTHER COMMANDS
+    I/O COMMANDS
     """
 
     def command_write(self, value):
@@ -71,18 +92,31 @@ class CodeGenerator:
         if value[1] == 'NUM':
             lines += self.get_number_in_register(value[0], 'a')
         elif value[1] == 'PIDENTIFIER':
-            lines += self.get_number_in_register(value[0], 'h')
+            lines += self.get_number_in_register(value[0], 'h') + 1
             self.write('LOAD h\n')
-            lines += 1
+        elif value[1] == 'AKU':
+            lines += self.load_aku_idx(value[0][0], value[0][1]) + 1
+            self.write("LOAD a\n")
         # if value[1] == 'EXPRESSION' its already in register a
         self.write('WRITE\n')
         return lines + 1
 
-    def command_read(self, idx):
+    def command_read(self, value):
         self.write("READ\n")
-        lines = self.get_number_in_register(idx, 'h')
-        self.write("STORE h\n")
-        return lines + 2
+        lines = 1
+        if value[1] == 'AKU':
+            self.write("PUT c\n")
+            lines += self.get_number_in_register(value[0][1], 'h') + 2
+            self.write("LOAD h\n")
+            lines += self.get_number_in_register(value[0][0], 'a') + 4
+            self.write("ADD h\n")
+            self.write("PUT b\n")
+            self.write("GET c\n")
+            self.write("STORE b\n")
+        else:
+            lines += self.get_number_in_register(value[0], 'h') + 1
+            self.write("STORE h\n")
+        return lines
 
     """
     ARITHMETICAL OPERATIONS
@@ -93,22 +127,27 @@ class CodeGenerator:
             return value1[0] + value2[0], 'NUM', 0
         lines = 0
         if value2[1] == 'PIDENTIFIER':
-            lines += self.get_number_in_register(value2[0], 'h')
+            lines += self.get_number_in_register(value2[0], 'h') + 2
             self.write("LOAD h\n")
-            self.write("PUT b\n")
-            lines += 2
+            self.write("PUT c\n")
+        elif value2[1] == 'AKU':
+            lines += self.load_aku_idx(value2[0][0], value2[0][1]) + 2
+            self.write("LOAD a\n")
+            self.write("PUT c\n")
         else:
-            lines += self.get_number_in_register(value2[0], 'b')
+            lines += self.get_number_in_register(value2[0], 'c')
         if value1[1] == 'PIDENTIFIER':
-            lines += self.get_number_in_register(value1[0], 'h')
+            lines += self.get_number_in_register(value1[0], 'h') + 1
             self.write("LOAD h\n")
-            lines += 1
+        elif value1[1] == 'AKU':
+            lines += self.load_aku_idx(value1[0][0], value1[0][1]) + 1
+            self.write("LOAD a\n")
         else:
             lines += self.get_number_in_register(value1[0], 'a')
         if mode == 'add':
-            self.write("ADD b\n")
+            self.write("ADD c\n")
         else:
-            self.write("SUB b\n")
+            self.write("SUB c\n")
         return None, 'EXPRESSION', lines + 1
 
     """

@@ -59,17 +59,38 @@ class Parser(SlyPar):
 
     @_('identifier ASSIGN expression ";"')
     def command(self, p):
-        # p = ('expression', [idx, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code]
-        # or just
-        # [idx, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code]
-        if p.expression[1][1] == 'NUM':
-            return self.cg.assign_number(p.expression[1][0], p.identifier)
-        elif p.expression[1] == 'NUM':
-            return self.cg.assign_number(p.expression[0], p.identifier)
-        elif p.expression[1][1] == 'PIDENTIFIER':
-            return self.cg.assign_identifier(p.identifier, p.expression[1][0])
+        # p[2] = [idx, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code] or [(idx1, idx2), 'AKU', lines_of_code]
+        if p[2][0] == 'expression':
+            p[2] = p[2][1]
+        if p[0][1] == 'AKU':
+            lines = 0
+            if p[2][1] == 'EXPRESSION':
+                self.cg.write("PUT c\n")
+                lines += 1
+            lines += self.cg.load_aku_idx(p[0][0][0], p[0][0][1])
+            if p[2][1] == 'EXPRESSION':
+                self.cg.write("PUT b\n")
+                self.cg.write("GET c\n")
+                self.cg.write("STORE b\n")
+                return lines + 3 + p[2][2]
+            else:
+                self.cg.write("PUT c\n")
+                lines += 1
+            if p[2][1] == 'NUM':
+                return self.cg.assign_number(p[2][0], p[0][0], address_in_c=True) + lines
+            elif p[2][1] == 'PIDENTIFIER':
+                return self.cg.assign_identifier(p[0][0], p[2][0], address_in_c=True) + lines
+            else:
+                return self.cg.assign_aku(p[0][0], p[2][0][0], p[2][0][1], address_in_c=True) + lines
         else:
-            return self.cg.store(p.identifier) + p.expression[2]
+            if p[2][1] == 'NUM':
+                return self.cg.assign_number(p[2][0], p[0][0])
+            elif p[2][1] == 'PIDENTIFIER':
+                return self.cg.assign_identifier(p[0][0], p[2][0])
+            elif p[2][1] == 'AKU':
+                return self.cg.assign_aku(p[0][0], p[2][0][0], p[2][0][1])
+            else:
+                return self.cg.store(p[0][0]) + p[2][2]
 
     @_('IF condition THEN commands ELSE commands ENDIF')
     def command(self, p):
@@ -125,7 +146,7 @@ class Parser(SlyPar):
 
     @_('declarations "," PIDENTIFIER "[" NUM "]"')
     def declarations(self, p):
-        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, p.NUM, p.PIDENTIFIER)
+        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, int(p.NUM), p.PIDENTIFIER)
 
     @_('PIDENTIFIER')
     def declarations(self, p):
@@ -133,7 +154,7 @@ class Parser(SlyPar):
 
     @_('PIDENTIFIER "[" NUM "]"')
     def declarations(self, p):
-        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, p.NUM, p.PIDENTIFIER)
+        self.EXCEPTION_WRAPPER(NameError, self.data.allocate, int(p.NUM), p.PIDENTIFIER)
 
     @_('args_decl "," PIDENTIFIER')
     def args_decl(self, p):     # TODO: procedures
@@ -219,17 +240,17 @@ class Parser(SlyPar):
 
     @_('identifier')
     def value(self, p):
-        return p.identifier, 'PIDENTIFIER', 0
+        return p[0]
 
     @_('PIDENTIFIER')
     def identifier(self, p):
-        return self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p.PIDENTIFIER)
+        return self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p.PIDENTIFIER), 'PIDENTIFIER', 0
 
     @_('PIDENTIFIER "[" NUM "]"')
     def identifier(self, p):
-        return self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p.PIDENTIFIER) + int(p.NUM)
+        return self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p.PIDENTIFIER) + int(p.NUM), 'PIDENTIFIER', 0
 
     @_('PIDENTIFIER "[" PIDENTIFIER "]"')
     def identifier(self, p):
-        return (self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p[0]) +
-                self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p[2]))
+        return (self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p[0]),
+                self.EXCEPTION_WRAPPER(NameError, self.data.get_index, p[2])), 'AKU', 0
