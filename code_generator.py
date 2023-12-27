@@ -1,5 +1,4 @@
-import algorithms
-import re
+from code_generator_functions import arithmetic, assign, blocks, io, logical
 
 
 class CodeGenerator:
@@ -26,181 +25,84 @@ class CodeGenerator:
         if number != 0:
             self.write(f"INC {register}\n")
             lines += 1
-            operations = algorithms.reach_target_number(number)
+            operations = self.reach_target_number(number)
             for operation in operations:
                 self.write(operation + f" {register}\n")
                 lines += 1
         return lines
 
+    # Calculates the quickest way from 1 to x using only SHL, INC or DEC
+    def reach_target_number(self, x):
+        operations = []
+        while x != 1:
+            if x % 2 == 0:
+                x //= 2
+                operations.append("SHL")
+            elif (x - 1) % 4 == 0 or x == 3:
+                x -= 1
+                operations.append("INC")
+            else:
+                x += 1
+                operations.append("DEC")
+        return operations[::-1]
+
     """
     ASSIGN
     """
 
-    # PIDENTIFIER ASSIGN NUM
-    # save the number at a given index in memory
-    # Returns number of lines written
     def assign_number(self, num, idx, address_in_c=False):
-        # Get expected number in register a
-        lines = self.get_number_in_register(num, 'a')
-        if address_in_c:
-            self.write("STORE c\n")
-            return lines + 1
-        # Save it in memory
-        return lines + self.store(idx)
+        return assign.assign_number(self, num, idx, address_in_c)
 
-    # PIDENTIFIER ASSIGN pidentifier
-    # save/copy the number from one index in memory under the other
-    # Returns number of lines written
     def assign_identifier(self, idx1, idx2, address_in_c=False):
-        lines = self.get_number_in_register(idx2, 'h')
-        self.write("LOAD h\n")
-        if address_in_c:
-            self.write("STORE c\n")
-            return lines + 2
-        return lines + 1 + self.store(idx1)
+        return assign.assign_identifier(self, idx1, idx2, address_in_c)
 
     def assign_aku(self, idx1, idx2, idx3, address_in_c=False):
-        lines = self.load_aku_idx(idx2, idx3)
-        if address_in_c:
-            self.write("STORE c\n")
-            return lines + 1
-        return self.store(idx1) + lines
+        return assign.assign_aku(self, idx1, idx2, idx3, address_in_c)
 
-    # STORE
-    # save value from register 'a' at given idx in memory
-    # Returns number of lines written
     def store(self, idx):
-        lines = self.get_number_in_register(idx, 'h')
-        self.write("STORE h\n")
-        return lines + 1
+        return assign.store(self, idx)
 
-    # Loads memory address of PIDENTIFIER[PIDENTIFIER] to register 'a'
     def load_aku_idx(self, idx1, idx2):
-        lines = self.get_number_in_register(idx1, 'b')
-        lines += self.get_number_in_register(idx2, 'a')
-        self.write('LOAD a\n')
-        self.write('ADD b\n')
-        return lines + 2
+        return assign.load_aku_idx(self, idx1, idx2)
 
     """
     I/O COMMANDS
     """
 
     def command_write(self, value):
-        # value = [idx/number, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code]
-        lines = 0
-        if value[1] == 'NUM':
-            lines += self.get_number_in_register(value[0], 'a')
-        elif value[1] == 'PIDENTIFIER':
-            lines += self.get_number_in_register(value[0], 'h') + 1
-            self.write('LOAD h\n')
-        elif value[1] == 'AKU':
-            lines += self.load_aku_idx(value[0][0], value[0][1]) + 1
-            self.write("LOAD a\n")
-        # if value[1] == 'EXPRESSION' its already in register a
-        self.write('WRITE\n')
-        return lines + 1
+        return io.command_write(self, value)
 
     def command_read(self, value):
-        self.write("READ\n")
-        lines = 1
-        if value[1] == 'AKU':
-            self.write("PUT c\n")
-            lines += self.get_number_in_register(value[0][1], 'h') + 2
-            self.write("LOAD h\n")
-            lines += self.get_number_in_register(value[0][0], 'a') + 4
-            self.write("ADD h\n")
-            self.write("PUT b\n")
-            self.write("GET c\n")
-            self.write("STORE b\n")
-        else:
-            lines += self.get_number_in_register(value[0], 'h') + 1
-            self.write("STORE h\n")
-        return lines
+        return io.command_read(self, value)
 
     """
     ARITHMETICAL OPERATIONS
     """
 
     def add_sub(self, value1, value2, mode='add') -> (None, str, int):
-        if value1[1] == 'NUM' and value2[1] == 'NUM':
-            return value1[0] + value2[0], 'NUM', 0
-        lines = 0
-        if value2[1] == 'PIDENTIFIER':
-            lines += self.get_number_in_register(value2[0], 'h') + 2
-            self.write("LOAD h\n")
-            self.write("PUT c\n")
-        elif value2[1] == 'AKU':
-            lines += self.load_aku_idx(value2[0][0], value2[0][1]) + 2
-            self.write("LOAD a\n")
-            self.write("PUT c\n")
-        else:
-            lines += self.get_number_in_register(value2[0], 'c')
-        if value1[1] == 'PIDENTIFIER':
-            lines += self.get_number_in_register(value1[0], 'h') + 1
-            self.write("LOAD h\n")
-        elif value1[1] == 'AKU':
-            lines += self.load_aku_idx(value1[0][0], value1[0][1]) + 1
-            self.write("LOAD a\n")
-        else:
-            lines += self.get_number_in_register(value1[0], 'a')
-        if mode == 'add':
-            self.write("ADD c\n")
-        else:
-            self.write("SUB c\n")
-        return None, 'EXPRESSION', lines + 1
+        return arithmetic.add_sub(self, value1, value2, mode)
 
     """
     LOGICAL OPERATIONS
     """
 
     def op_eq(self, value1, value2):
-        # EQ - max(v1 - v2, 0) + max(v2 - v1, 0) == 0
-        lines = self.add_sub(value1, value2, mode='sub')[2]
-        self.write('PUT c\n')
-        lines += self.add_sub(value2, value1, mode='sub')[2]
-        self.write('ADD c\n')
-        self.inc_block_level()
-        self.write('JPOS ')
-        return lines + 3
+        return logical.op_eq(self, value1, value2)
 
     def op_neq(self, value1, value2):
-        # NEQ - max(v1 - v2, 0) + max(v2 - v1, 0) > 0
-        lines = self.add_sub(value1, value2, mode='sub')[2]
-        self.write('PUT c\n')
-        lines += self.add_sub(value2, value1, mode='sub')[2]
-        self.write('ADD c\n')
-        self.inc_block_level()
-        self.write('JZERO ')
-        return lines + 3
+        return logical.op_neq(self, value1, value2)
 
     def op_gt(self, value1, value2):
-        # GT - max(v1 - v2, 0) > 0
-        lines = self.add_sub(value1, value2, mode='sub')[2]
-        self.inc_block_level()
-        self.write('JZERO ')
-        return lines + 1
+        return logical.op_gt(self, value1, value2)
 
     def op_lt(self, value1, value2):
-        # LT - max(v2 - v1, 0) > 0
-        lines = self.add_sub(value2, value1, mode='sub')[2]
-        self.inc_block_level()
-        self.write('JZERO ')
-        return lines + 1
+        return logical.op_lt(self, value1, value2)
 
     def op_geq(self, value1, value2):
-        # GEQ - max(v2 - v1, 0) == 0
-        lines = self.add_sub(value2, value1, mode='sub')[2]
-        self.inc_block_level()
-        self.write('JPOS ')
-        return lines + 1
+        return logical.op_geq(self, value1, value2)
 
     def op_leq(self, value1, value2):
-        # LEQ - max(v1 - v2, 0) == 0
-        lines = self.add_sub(value1, value2, mode='sub')[2]
-        self.inc_block_level()
-        self.write('JPOS ')
-        return lines + 1
+        return logical.op_leq(self, value1, value2)
 
     """
     IF, IF_ELSE, WHILE, REPEAT
@@ -211,26 +113,7 @@ class CodeGenerator:
         self.block_buffer.append([])
 
     def flush_block_buffer(self, line_num):
-        # JPOS/JZERO line_num
-        self.block_level -= 1
-        self.block_buffer[self.block_level][0] += f'{line_num}\n'
-        if self.block_level == 0:
-            for line in self.block_buffer[0]:
-                self.code_file.write(line)
-        else:
-            # Merge nested block
-            for line in self.block_buffer[self.block_level]:
-                self.block_buffer[self.block_level - 1].append(line)
-        self.block_buffer.pop()
+        blocks.flush_block_buffer(self, line_num)
 
     def fix_else_jumps(self, idx):
-        for i in range(idx, len(self.block_buffer[self.block_level - 1])):
-            # Check if the string begins with 'JUMP', 'JPOS', or 'JZERO'
-            if self.block_buffer[self.block_level - 1][i].startswith(('JUMP', 'JPOS', 'JZERO')):
-                match = re.search(r'\d+', self.block_buffer[self.block_level - 1][i])
-                if match:
-                    # Increase the number by 1
-                    number = int(match.group()) + 1
-                    self.block_buffer[self.block_level - 1][i] = re.sub(r'\d+',
-                                                                        str(number),
-                                                                        self.block_buffer[self.block_level - 1][i])
+        blocks.fix_else_jumps(self, idx)
