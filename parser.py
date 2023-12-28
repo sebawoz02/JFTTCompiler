@@ -105,9 +105,9 @@ class Parser(SlyPar):
     def command(self, p):
         if self.pg.definition:
             if p[1][1] != 'AKU':
-                self.pg.add_step(self.cg.command_read, [[p[1][0][0], p[1][1]]], [p[1][0][1]])
+                self.pg.add_step(self.cg.command_read, [[p[1][0][0], p[1][1]]], [[p[1][0][1], None]])
             else:
-                self.pg.add_step(self.cg.command_read, [[[p[1][0][0], p[1][0][1]], p[1][1]]], [None])
+                self.pg.add_step(self.cg.command_read, [[[p[1][0][0], p[1][0][1]], p[1][1]]], [[None, None]])
             return 0
         return self.cg.command_read(p[1])
 
@@ -115,9 +115,9 @@ class Parser(SlyPar):
     def command(self, p):
         if self.pg.definition:
             if p[1][1] != 'AKU':
-                self.pg.add_step(self.cg.command_write, [[p[1][0][0], p[1][1]]], [p[1][0][1]])
+                self.pg.add_step(self.cg.command_write, [[p[1][0][0], p[1][1]]], [[p[1][0][1], None]])
             else:
-                self.pg.add_step(self.cg.command_write, [[[p[1][0][0], p[1][0][1]], p[1][1]]], [None])
+                self.pg.add_step(self.cg.command_write, [[[p[1][0][0], p[1][0][1]], p[1][1]]], [[None, None]])
             return 0
         return self.cg.command_write(p[1])
 

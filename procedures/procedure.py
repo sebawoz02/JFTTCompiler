@@ -8,8 +8,14 @@ class GenStep:
         for i in range(len(self.params)):
             if isinstance(self.params[i], list):
                 for j in range(len(self.params[i])):
-                    if self.params[i][j] in params_dict.keys():
-                        self.params[i][j] = params_dict[self.params[i][j]]
+                    if isinstance(self.params[i][j], list):
+                        for k in range(len(self.params[i][j])):
+                            self.params[i][j][k] = params_dict[self.params[i][j][k]]
+                    elif self.params[i][j] in params_dict.keys():
+                        if self.optional[i][j] is not None:
+                            self.params[i][j] = params_dict[self.params[i][j]] + self.optional[i][j]
+                        else:
+                            self.params[i][j] = params_dict[self.params[i][j]]
             elif self.params[i] in params_dict.keys():
                 if self.optional[i] is not None:
                     self.params[i] = params_dict[self.params[i]] + self.optional[i]

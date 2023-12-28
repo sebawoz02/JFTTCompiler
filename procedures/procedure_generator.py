@@ -6,6 +6,8 @@ class ProcedureGenerator:
         self.procedures_dict = {}
         self.current_procedure_name = ''
         self.definition = False
+        self.block_buffer = []
+        self.block_level = 0
 
     def declare_new_procedure(self, allocator, name, params):
         if name in self.procedures_dict.keys():
@@ -20,9 +22,6 @@ class ProcedureGenerator:
     def add_param(self, allocator, identifier, no_bytes, address=-1):
         self.procedures_dict[self.current_procedure_name].add_param(allocator, identifier, no_bytes, address)
 
-    """
-    
-    """
     def add_step(self, func, params, optional):
         self.procedures_dict[self.current_procedure_name].add_step(func, params, optional)
 
@@ -72,3 +71,7 @@ class ProcedureGenerator:
                               [identifier[0][1], None, None])
             else:
                 self.add_step(cg.store, [identifier[0][0]], [identifier[0][1]])
+
+    def inc_block_level(self):
+        self.block_level += 1
+        self.block_buffer.append([])
