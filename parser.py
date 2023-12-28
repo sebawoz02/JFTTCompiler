@@ -148,7 +148,8 @@ class Parser(SlyPar):
                 print(f"\033[91mError at line {p.lineno} in procedure '{p[0]}': Recursion is prohibited!\033[0m")
                 self.cg.close()
                 exit(1)
-            self.pg.add_step(self.pg.generate_procedure, [self.cg, p[0], p[2]], [None, None])
+            opt = [None for i in range(len(p[2]))]
+            self.pg.add_step(self.pg.generate_procedure, [self.cg, p[0], p[2]], [None, None, opt])
             return 1
         return self.EXCEPTION_WRAPPER(NameError, self.pg.generate_procedure, self.cg, p[0], p[2])
 
@@ -185,7 +186,7 @@ class Parser(SlyPar):
         return [*p[0], p[2]]
 
     @_('args_decl "," "T" PIDENTIFIER')
-    def args_decl(self, p):     # TODO: T procedures
+    def args_decl(self, p):     # TODO: T procedures / Recursive calls
         return [*p[0], "T " + p[2]]
 
     @_('PIDENTIFIER')
@@ -193,15 +194,19 @@ class Parser(SlyPar):
         return [p[0]]
 
     @_('"T" PIDENTIFIER')
-    def args_decl(self, p):     # TODO: T procedures
+    def args_decl(self, p):     # TODO: T procedures / Recursive calls
         return ["T " + p[0]]
 
     @_('args "," PIDENTIFIER')
     def args(self, p):
+        if self.pg.definition:
+            return [*p[0], p[2]]
         return [*p[0], self.allocator.get_index(p[2])]
 
     @_('PIDENTIFIER')
     def args(self, p):
+        if self.pg.definition:
+            return [p[0]]
         return [self.allocator.get_index(p[0])]
 
     @_('value')
