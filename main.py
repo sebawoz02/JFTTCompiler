@@ -3,7 +3,7 @@ from parser import Parser
 import sys
 
 # TODO:
-# - procedures
+# - Passing arrays to procedures
 # - check if variable is set when used
 # - division/modulo
 

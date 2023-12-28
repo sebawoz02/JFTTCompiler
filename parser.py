@@ -86,20 +86,38 @@ class Parser(SlyPar):
         return p[1] + p[3] + p[5] + 1
 
     @_('IF condition THEN commands ENDIF')
-    def command(self, p):          # TODO: procedures
+    def command(self, p):
+        if self.pg.definition:
+            self.pg.insert_fixup_info(p[1][1], "IF_BEGINS")
+            self.pg.insert_fixup_info(self.pg.get_curr_step_idx(), 'IF_ENDS')
+            # None params will be fixed while executing steps
+            self.pg.add_step(self.cg.flush_block_buffer, [None], [None])
+            return p[1][0] + p[3] + 3
         total_lines = self.cg.line
         self.cg.flush_block_buffer(total_lines + p[3] + 1)
         return p[1] + p[3]
 
     @_('WHILE condition DO commands ENDWHILE')
-    def command(self, p):          # TODO: procedures
+    def command(self, p):
+        if self.pg.definition:
+            self.pg.insert_fixup_info(p[1][1], "WHILE_BEGINS")
+            self.pg.insert_fixup_info(self.pg.get_curr_step_idx(), 'WHILE_ENDS')
+            # None params will be fixed while executing steps
+            self.pg.add_step(self.cg.flush_block_buffer, [None], [None])
+            self.pg.add_step(self.cg.write, [None], [None])
+            return p[1][0] + p[3] + 4
         total_lines = self.cg.line
         self.cg.flush_block_buffer(total_lines + 1)
         self.cg.write(f'JUMP {total_lines - p[1] - p[3]}\n')
         return p[1] + p[3] + 1
 
     @_('REPEAT commands UNTIL condition ";"')
-    def command(self, p):          # TODO: procedures
+    def command(self, p):
+        if self.pg.definition:
+            self.pg.insert_fixup_info(self.pg.get_curr_step_idx() - p[1] - p[3][0], "REPEAT_BEGINS")
+            self.pg.insert_fixup_info(self.pg.get_curr_step_idx(), 'REPEAT_ENDS')
+            self.pg.add_step(self.cg.flush_block_buffer, [None], [None])
+            return p[3][0] + p[1] + 3
         self.cg.flush_block_buffer(self.cg.line - p[1] - p[3])
         return p[1] + p[3]
 

@@ -63,28 +63,56 @@ class Procedure:
     def generate(self, cg, params):
         self._fix_params(params)
         if_else_fix_idx = []
+        while_fix_idx = []
         block_level = 0
         fixup_lines = []
         total_lines = 0
+        prev_len = 0
         for i in range(len(self.gen_steps)):
             step = self.gen_steps[i]
             if isinstance(step, str):
-                if step == 'ELSE_BEGINS':
-                    if_else_fix_idx[block_level - 1] = fixup_lines[block_level - 1]
-                elif step == 'IF_ELSE_BEGINS':
-                    block_level += 1
-                    fixup_lines.append(0)
-                    if_else_fix_idx.append(0)
-                elif step == 'IF_ELSE_ENDS':
-                    # Fix params
-                    block_level -= 1
-                    self.gen_steps[i + 1].params = [if_else_fix_idx[block_level] + 1,   # NOT OK
-                                                    f"JUMP {cg.line}\n"]  # OK
-                    self.gen_steps[i + 2].params = [if_else_fix_idx[block_level] + 1]   # NOT OK
-                    self.gen_steps[i + 3].params = \
-                        [cg.line - (fixup_lines[block_level] - if_else_fix_idx[block_level]) + 1]   # OK?
-                    fixup_lines.pop()
-                    if_else_fix_idx.pop()
+                match step:
+                    case 'ELSE_BEGINS':
+                        if_else_fix_idx[block_level - 1] = fixup_lines[block_level - 1]
+                    case 'IF_ELSE_BEGINS':
+                        block_level += 1
+                        fixup_lines.append(0)
+                        if_else_fix_idx.append(0)
+                    case 'IF_ELSE_ENDS':
+                        # Fix params
+                        block_level -= 1
+                        self.gen_steps[i + 1].params = [if_else_fix_idx[block_level] + 1,
+                                                        f"JUMP {cg.line}\n"]
+                        self.gen_steps[i + 2].params = [if_else_fix_idx[block_level] + 1]
+                        self.gen_steps[i + 3].params = \
+                            [cg.line - (fixup_lines[block_level] - if_else_fix_idx[block_level]) + 1]
+                        fixup_lines.pop()
+                        if_else_fix_idx.pop()
+                    case 'IF_BEGINS':
+                        block_level += 1
+                        fixup_lines.append(0)
+                    case 'IF_ENDS':
+                        block_level -= 1
+                        self.gen_steps[i + 1].params = [cg.line]
+                        fixup_lines.pop()
+                    case 'WHILE_BEGINS':
+                        block_level += 1
+                        fixup_lines.append(0)
+                        while_fix_idx.append(prev_len)
+                    case 'WHILE_ENDS':
+                        block_level -= 1
+                        self.gen_steps[i + 1].params = [cg.line + 1]
+                        self.gen_steps[i + 2].params = \
+                            [f"JUMP {cg.line - fixup_lines[block_level] - while_fix_idx[block_level]}\n"]
+                        fixup_lines.pop()
+                    case 'REPEAT_BEGINS':
+                        block_level += 1
+                        fixup_lines.append(0)
+                    case 'REPEAT_ENDS':
+                        block_level -= 1
+                        self.gen_steps[i + 1].params = [cg.line - fixup_lines[block_level]]
+                        fixup_lines.pop()
+
             else:
                 k = step.execute(self.params)
                 if k is None:
@@ -94,9 +122,11 @@ class Procedure:
                         for j in range(block_level):
                             fixup_lines[j] += k[2]
                     total_lines += k[2]
+                    prev_len = k[2]
                 else:
                     if block_level > 0:
                         for j in range(block_level):
                             fixup_lines[j] += k
                     total_lines += k
+                    prev_len = k
         return total_lines
