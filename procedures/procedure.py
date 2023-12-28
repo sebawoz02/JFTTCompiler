@@ -2,12 +2,19 @@ from value import ValInfo
 
 
 class GenStep:
+    """
+    A class that is a function/step on the way to generating a complete procedure
+    """
     def __init__(self, func, params, optional):
         self.func = func
         self.params = params
         self.optional = optional
 
-    def execute(self, params_dict: dict):
+    """
+    A monstrous function with a simple purpose. 
+    Replace all prepared parameters with their addresses and run the function.
+    """
+    def execute(self, params_dict: dict, name: str) -> int | ValInfo:
         for i in range(len(self.params)):
             if isinstance(self.params[i], list):
                 for j in range(len(self.params[i])):
@@ -126,7 +133,7 @@ class Procedure:
                         fixup_lines.pop()
 
             else:
-                k = step.execute(self.params)
+                k = step.execute(self.params, self.name)
                 if k is None:
                     continue
                 if isinstance(k, ValInfo):

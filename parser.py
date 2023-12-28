@@ -142,12 +142,16 @@ class Parser(SlyPar):
 
     @_('PIDENTIFIER "(" args ")"')
     def proc_call(self, p) -> int:
+        if p[0] not in self.pg.procedures_dict.keys():
+            print(f"\033[91mUse of undeclared procedure '{p[0]}' in line {p.lineno}!\033[0m")
+            self.cg.close()
+            exit(1)
         if self.pg.definition:
             if p[0] == self.pg.current_procedure_name:
                 print(f"\033[91mError at line {p.lineno} in procedure '{p[0]}': Recursion is prohibited!\033[0m")
                 self.cg.close()
                 exit(1)
-            opt = [None for i in range(len(p[2]))]
+            opt = [None for _ in range(len(p[2]))]
             self.pg.add_step(self.pg.generate_procedure, [self.cg, p[0], p[2]], [None, None, opt])
             return 1
         return self.EXCEPTION_WRAPPER(NameError, self.pg.generate_procedure, self.cg, p[0], p[2])

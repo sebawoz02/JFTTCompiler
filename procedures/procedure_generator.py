@@ -3,10 +3,13 @@ from value import ValInfo
 
 
 class ProcedureGenerator:
+    """
+    This class stores declared procedures and generates arrays of steps needed to generate them.
+    """
     def __init__(self):
         self.procedures_dict = {}
         self.current_procedure_name = ''
-        self.definition = False
+        self.definition = False     # if parsing should be done as for procedure, not for program
 
     def declare_new_procedure(self, allocator, name, params):
         if name in self.procedures_dict.keys():

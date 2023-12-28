@@ -2,6 +2,10 @@ from code_generator_functions import arithmetic, assign, blocks, io, logical
 
 
 class CodeGenerator:
+    """
+    The class responsible for generating code for the output file.
+    """
+
     def __init__(self, out):
         self.line = 0
         self.code_file = open(out, 'w')

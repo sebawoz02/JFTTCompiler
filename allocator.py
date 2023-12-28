@@ -1,4 +1,7 @@
 class Allocator:
+    """
+    The class manages the assignment of memory addresses for variables
+    """
 
     def __init__(self):
         self.variable_indexes = {}
