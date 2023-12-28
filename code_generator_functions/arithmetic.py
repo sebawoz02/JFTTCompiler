@@ -26,7 +26,10 @@ def _prep_registers(cg, value1, value2):
 # + and  -
 def add_sub(cg, value1, value2, mode='add') -> (None, str, int):
     if value1[1] == 'NUM' and value2[1] == 'NUM':
-        return value1[0] + value2[0], 'NUM', 0
+        if mode == 'add':
+            return value1[0] + value2[0], 'NUM', 0
+        else:
+            return max(value1[0] - value2[0], 0), 'NUM', 0
     lines = 0
     if value2[1] == 'PIDENTIFIER':
         lines += cg.get_number_in_register(value2[0], 'h') + 2

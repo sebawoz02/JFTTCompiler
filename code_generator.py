@@ -122,6 +122,11 @@ class CodeGenerator:
         self.block_level += 1
         self.block_buffer.append([])
 
+    def block_buffer_insert(self, idx, string):
+        self.block_buffer[self.block_level - 1].insert(idx, string)
+        self.line += 1
+        return 1
+
     def flush_block_buffer(self, line_num):
         blocks.flush_block_buffer(self, line_num)
 

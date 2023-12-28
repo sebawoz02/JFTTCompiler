@@ -10,7 +10,8 @@ class GenStep:
                 for j in range(len(self.params[i])):
                     if isinstance(self.params[i][j], list):
                         for k in range(len(self.params[i][j])):
-                            self.params[i][j][k] = params_dict[self.params[i][j][k]]
+                            if self.params[i][j][k] in params_dict.keys():
+                                self.params[i][j][k] = params_dict[self.params[i][j][k]]
                     elif self.params[i][j] in params_dict.keys():
                         if self.optional[i][j] is not None:
                             self.params[i][j] = params_dict[self.params[i][j]] + self.optional[i][j]
@@ -53,9 +54,49 @@ class Procedure:
     def add_step(self, func, params, optional):
         self.gen_steps.append(GenStep(func, params, optional))
 
-    def generate(self, params):
+    def get_curr_step_idx(self):
+        return len(self.gen_steps)
+
+    def insert_fixup_info(self, idx, info):
+        self.gen_steps.insert(idx, info)
+
+    def generate(self, cg, params):
         self._fix_params(params)
-        lines = 0
-        for step in self.gen_steps:
-            lines += step.execute(self.params)
-        return lines
+        if_else_fix_idx = []
+        block_level = 0
+        fixup_lines = []
+        total_lines = 0
+        for i in range(len(self.gen_steps)):
+            step = self.gen_steps[i]
+            if isinstance(step, str):
+                if step == 'ELSE_BEGINS':
+                    if_else_fix_idx[block_level - 1] = fixup_lines[block_level - 1]
+                elif step == 'IF_ELSE_BEGINS':
+                    block_level += 1
+                    fixup_lines.append(0)
+                    if_else_fix_idx.append(0)
+                elif step == 'IF_ELSE_ENDS':
+                    # Fix params
+                    block_level -= 1
+                    self.gen_steps[i + 1].params = [if_else_fix_idx[block_level] + 1,   # NOT OK
+                                                    f"JUMP {cg.line}\n"]  # OK
+                    self.gen_steps[i + 2].params = [if_else_fix_idx[block_level] + 1]   # NOT OK
+                    self.gen_steps[i + 3].params = \
+                        [cg.line - (fixup_lines[block_level] - if_else_fix_idx[block_level]) + 1]   # OK?
+                    fixup_lines.pop()
+                    if_else_fix_idx.pop()
+            else:
+                k = step.execute(self.params)
+                if k is None:
+                    continue
+                if isinstance(k, tuple):
+                    if block_level > 0:
+                        for j in range(block_level):
+                            fixup_lines[j] += k[2]
+                    total_lines += k[2]
+                else:
+                    if block_level > 0:
+                        for j in range(block_level):
+                            fixup_lines[j] += k
+                    total_lines += k
+        return total_lines
