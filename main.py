@@ -14,8 +14,8 @@ import sys
 # ex5 - brakuje modulo
 # ex6 - OK
 # ex7 - OK
-# ex8 - brakuje modulo
-# ex9 - brakuje dzielenia
+# ex8 - brakuje modulo, brakuje T
+# ex9 - brakuje dzielenia, brakuje T
 
 # Oblugiwane błedy:
 # - Double declaration (zmienna, procedura, zmienne w procedurze)

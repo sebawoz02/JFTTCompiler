@@ -14,7 +14,7 @@ class GenStep:
     A monstrous function with a simple purpose. 
     Replace all prepared parameters with their addresses and run the function.
     """
-    def execute(self, params_dict: dict, name: str) -> int | ValInfo:
+    def execute(self, params_dict: dict) -> int | ValInfo:
         for i in range(len(self.params)):
             if isinstance(self.params[i], list):
                 for j in range(len(self.params[i])):
@@ -23,23 +23,25 @@ class GenStep:
                             if self.params[i][j][k] in params_dict.keys():
                                 self.params[i][j][k] = params_dict[self.params[i][j][k]]
                     elif self.params[i][j] in params_dict.keys():
+                        self.params[i][j] = params_dict[self.params[i][j]]
                         if self.optional[i][j] is not None:
-                            self.params[i][j] = params_dict[self.params[i][j]] + self.optional[i][j]
-                        else:
-                            self.params[i][j] = params_dict[self.params[i][j]]
+                            self.params[i][j] += self.optional[i][j]
             elif isinstance(self.params[i], ValInfo):
                 if isinstance(self.params[i].value, list):
                     for j in range(len(self.params[i].value)):
-                        if self.params[i].value in params_dict.keys():
-                            self.params[i].value = params_dict[self.params[i].value]
+                        if self.params[i].value[j] in params_dict.keys():
+                            self.params[i].value[j] = params_dict[self.params[i].value[j]]
+                            if self.optional[i][j] is not None:
+                                self.params[i].value[j] += self.optional[i][j]
                 else:
                     if self.params[i].value in params_dict.keys():
                         self.params[i].value = params_dict[self.params[i].value]
+                        if self.optional[i][0] is not None:
+                            self.params[i].value += self.optional[i][0]
             elif self.params[i] in params_dict.keys():
+                self.params[i] = params_dict[self.params[i]]
                 if self.optional[i] is not None:
-                    self.params[i] = params_dict[self.params[i]] + self.optional[i]
-                else:
-                    self.params[i] = params_dict[self.params[i]]
+                    self.params[i] += self.optional[i]
         return self.func(*self.params)
 
 
@@ -133,7 +135,7 @@ class Procedure:
                         fixup_lines.pop()
 
             else:
-                k = step.execute(self.params, self.name)
+                k = step.execute(self.params)
                 if k is None:
                     continue
                 if isinstance(k, ValInfo):

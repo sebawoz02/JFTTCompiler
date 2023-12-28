@@ -69,7 +69,7 @@ class ProcedureGenerator:
                 steps += 1
                 self.add_step(cg.write, ["PUT c\n"], [None])
             steps += 1
-            self.add_step(cg.load_aku_idx, [identifier.value[0], identifier.value[1]], [None, None])
+            self.add_step(cg.load_aku_idx, [identifier.value[0], identifier.value[1]], [[None, None], None])
             if expression.v_type == 'EXPRESSION':
                 self.add_step(cg.write, ["PUT b\n"], [None])
                 self.add_step(cg.write, ["GET c\n"], [None])
