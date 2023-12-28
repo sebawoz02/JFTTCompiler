@@ -1,3 +1,6 @@
+from value import ValInfo
+
+
 class GenStep:
     def __init__(self, func, params, optional):
         self.func = func
@@ -17,6 +20,14 @@ class GenStep:
                             self.params[i][j] = params_dict[self.params[i][j]] + self.optional[i][j]
                         else:
                             self.params[i][j] = params_dict[self.params[i][j]]
+            elif isinstance(self.params[i], ValInfo):
+                if isinstance(self.params[i].value, list):
+                    for j in range(len(self.params[i].value)):
+                        if self.params[i].value in params_dict.keys():
+                            self.params[i].value = params_dict[self.params[i].value]
+                else:
+                    if self.params[i].value in params_dict.keys():
+                        self.params[i].value = params_dict[self.params[i].value]
             elif self.params[i] in params_dict.keys():
                 if self.optional[i] is not None:
                     self.params[i] = params_dict[self.params[i]] + self.optional[i]
@@ -118,12 +129,12 @@ class Procedure:
                 k = step.execute(self.params)
                 if k is None:
                     continue
-                if isinstance(k, tuple):
+                if isinstance(k, ValInfo):
                     if block_level > 0:
                         for j in range(block_level):
-                            fixup_lines[j] += k[2]
-                    total_lines += k[2]
-                    prev_len = k[2]
+                            fixup_lines[j] += k.lines
+                    total_lines += k.lines
+                    prev_len = k.lines
                 else:
                     if block_level > 0:
                         for j in range(block_level):

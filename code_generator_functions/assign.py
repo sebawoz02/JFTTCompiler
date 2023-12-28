@@ -1,3 +1,6 @@
+from value import ValInfo
+
+
 # PIDENTIFIER ASSIGN NUM
 # save the number at a given index in memory
 # Returns number of lines written
@@ -49,34 +52,33 @@ def load_aku_idx(cg, idx1, idx2):
     return lines + 2
 
 
-def generate_assign(cg, identifier, expression):
-    # p[2] = [idx, 'NUM'/'PIDENTIFIER'/'EXPRESSION', lines_of_code] or [(idx1, idx2), 'AKU', lines_of_code]
-    if identifier[1] == 'AKU':
+def generate_assign(cg, identifier: ValInfo, expression: ValInfo) -> int:
+    if identifier.v_type == 'AKU':
         lines = 0
-        if expression[1] == 'EXPRESSION':
+        if expression.v_type == 'EXPRESSION':
             cg.write("PUT c\n")
             lines += 1
-        lines += cg.load_aku_idx(identifier[0][0], identifier[0][1])
-        if expression[1] == 'EXPRESSION':
+        lines += cg.load_aku_idx(identifier.value[0], identifier.value[1])
+        if expression.v_type == 'EXPRESSION':
             cg.write("PUT b\n")
             cg.write("GET c\n")
             cg.write("STORE b\n")
-            return lines + 3 + expression[2]
+            return lines + 3 + expression.lines
         else:
             cg.write("PUT c\n")
             lines += 1
-        if expression[1] == 'NUM':
-            return cg.assign_number(expression[0], identifier[0], address_in_c=True) + lines
-        elif expression[1] == 'PIDENTIFIER':
-            return cg.assign_identifier(identifier[0], expression[0], address_in_c=True) + lines
+        if expression.v_type == 'NUM':
+            return cg.assign_number(expression.value, identifier.value, address_in_c=True) + lines
+        elif expression.v_type == 'PIDENTIFIER':
+            return cg.assign_identifier(identifier.value, expression.value, address_in_c=True) + lines
         else:
-            return cg.assign_aku(identifier[0], expression[0][0], expression[0][1], address_in_c=True) + lines
+            return cg.assign_aku(identifier.value, expression.value[0], expression.value[1], address_in_c=True) + lines
     else:
-        if expression[1] == 'NUM':
-            return cg.assign_number(expression[0], identifier[0])
-        elif expression[1] == 'PIDENTIFIER':
-            return cg.assign_identifier(identifier[0], expression[0])
-        elif expression[1] == 'AKU':
-            return cg.assign_aku(identifier[0], expression[0][0], expression[0][1])
+        if expression.v_type == 'NUM':
+            return cg.assign_number(expression.value, identifier.value)
+        elif expression.v_type == 'PIDENTIFIER':
+            return cg.assign_identifier(identifier.value, expression.value)
+        elif expression.v_type == 'AKU':
+            return cg.assign_aku(identifier.value, expression.value[0], expression.value[1])
         else:
-            return cg.store(identifier[0]) + expression[2]
+            return cg.store(identifier.value) + expression.lines

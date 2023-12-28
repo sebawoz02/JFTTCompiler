@@ -1,4 +1,5 @@
 from procedures.procedure import Procedure
+from value import ValInfo
 
 
 class ProcedureGenerator:
@@ -31,16 +32,18 @@ class ProcedureGenerator:
 
     "ARITHMETIC / LOGIC"
     def add_func_with_two_values(self, func, p):
-        opt = [[p[0][0][1], None], [p[2][0][1], None]]
-        self.add_step(func, [[p[0][0][0], p[0][1]], [p[2][0][0], p[2][1]]], opt)
+        p1: ValInfo = p[0]
+        p2: ValInfo = p[2]
+        opt = [[p1.value[1], None], [p2.value[1], None]]
+        self.add_step(func, [ValInfo(p1.value[0], p1.v_type), ValInfo(p2.value[0], p2.v_type)], opt)
         return 1
 
     "I/O"
-    def add_io(self, func, p):
-        if p[1][1] != 'AKU':
-            self.add_step(func, [[p[1][0][0], p[1][1]]], [[p[1][0][1], None]])
+    def add_io(self, func, p: ValInfo):
+        if p.v_type != 'AKU':
+            self.add_step(func, [ValInfo(p.value[0], p.v_type)], [[p.value[1], None]])
         else:
-            self.add_step(func, [[[p[1][0][0], p[1][0][1]], p[1][1]]], [[None, None]])
+            self.add_step(func, [ValInfo([p.value[0], p.value[1]], p.v_type)], [[None, None]])
         return 1
 
     """
@@ -56,15 +59,15 @@ class ProcedureGenerator:
     """
     Add all steps needed to generate assign inside procedure
     """
-    def add_assign_step(self, cg, identifier, expression):
+    def add_assign_step(self, cg, identifier: ValInfo, expression: ValInfo):
         steps = 0
-        if identifier[1] == 'AKU':
-            if expression[1] == 'EXPRESSION':
+        if identifier.v_type == 'AKU':
+            if expression.v_type == 'EXPRESSION':
                 steps += 1
                 self.add_step(cg.write, ["PUT c\n"], [None])
             steps += 1
-            self.add_step(cg.load_aku_idx, [identifier[0][0], identifier[0][1]], [None, None])
-            if expression[1] == 'EXPRESSION':
+            self.add_step(cg.load_aku_idx, [identifier.value[0], identifier.value[1]], [None, None])
+            if expression.v_type == 'EXPRESSION':
                 self.add_step(cg.write, ["PUT b\n"], [None])
                 self.add_step(cg.write, ["GET c\n"], [None])
                 self.add_step(cg.write, ["STORE b\n"], [None])
@@ -72,26 +75,26 @@ class ProcedureGenerator:
             else:
                 self.add_step(cg.write, ["PUT c\n"], [None])
                 steps += 1
-            if expression[1] == 'NUM':
-                self.add_step(cg.assign_number, [expression[0][0], identifier[0][0], True],
-                              [expression[0][1], identifier[0][1], None])
-            elif expression[1] == 'PIDENTIFIER':
-                self.add_step(cg.assign_identifier, [identifier[0][0], expression[0][0], True],
-                              [identifier[0][1], expression[0][1], None])
+            if expression.v_type == 'NUM':
+                self.add_step(cg.assign_number, [expression.value[0], identifier.value[0], True],
+                              [expression.value[1], identifier.value[1], None])
+            elif expression.v_type == 'PIDENTIFIER':
+                self.add_step(cg.assign_identifier, [identifier.value[0], expression.value[0], True],
+                              [identifier.value[1], expression.value[1], None])
             else:
-                self.add_step(cg.assign_aku, [identifier[0][0], expression[0][0], expression[0][1], True],
-                              [identifier[0][1], None, None, None])
+                self.add_step(cg.assign_aku, [identifier.value[0], expression.value[0], expression.value[1], True],
+                              [identifier.value[1], None, None, None])
             return steps + 1
         else:
-            if expression[1] == 'NUM':
-                self.add_step(cg.assign_number, [expression[0][0], identifier[0][0]],
-                              [expression[0][1], identifier[0][1]])
-            elif expression[1] == 'PIDENTIFIER':
-                self.add_step(cg.assign_identifier, [identifier[0][0], expression[0][0]],
-                              [identifier[0][1], expression[0][1]])
-            elif expression[1] == 'AKU':
-                self.add_step(cg.assign_aku, [identifier[0][0], expression[0][0], expression[0][1]],
-                              [identifier[0][1], None, None])
+            if expression.v_type == 'NUM':
+                self.add_step(cg.assign_number, [expression.value[0], identifier.value[0]],
+                              [expression.value[1], identifier.value[1]])
+            elif expression.v_type == 'PIDENTIFIER':
+                self.add_step(cg.assign_identifier, [identifier.value[0], expression.value[0]],
+                              [identifier.value[1], expression.value[1]])
+            elif expression.v_type == 'AKU':
+                self.add_step(cg.assign_aku, [identifier.value[0], expression.value[0], expression.value[1]],
+                              [identifier.value[1], None, None])
             else:
-                self.add_step(cg.store, [identifier[0][0]], [identifier[0][1]])
+                self.add_step(cg.store, [identifier.value[0]], [identifier.value[1]])
             return steps + 1

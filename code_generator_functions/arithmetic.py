@@ -1,65 +1,68 @@
-def _prep_registers(cg, value1, value2):
+from value import ValInfo
+
+
+def _prep_registers(cg, value1: ValInfo, value2: ValInfo):
     lines = 0
-    if value2[1] == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value2[0], 'h') + 1
+    if value2.v_type == 'PIDENTIFIER':
+        lines += cg.get_number_in_register(value2.value, 'h') + 1
         cg.write("LOAD h\n")
         cg.write("PUT c\n")
-    elif value2[1] == 'AKU':
-        lines += cg.load_aku_idx(value2[0][0], value2[0][1]) + 2
+    elif value2.v_type == 'AKU':
+        lines += cg.load_aku_idx(value2.value[0], value2.value[1]) + 2
         cg.write("LOAD a\n")
         cg.write("PUT c\n")
     else:
-        lines += cg.get_number_in_register(value2[0], 'c')
-    if value1[1] == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value1[0], 'h') + 2
+        lines += cg.get_number_in_register(value2.value, 'c')
+    if value1.v_type == 'PIDENTIFIER':
+        lines += cg.get_number_in_register(value1.value, 'h') + 2
         cg.write("LOAD h\n")
         cg.write("PUT b\n")
-    elif value1[1] == 'AKU':
-        lines += cg.load_aku_idx(value1[0][0], value1[0][1]) + 2
+    elif value1.v_type == 'AKU':
+        lines += cg.load_aku_idx(value1.value[0], value1.value[1]) + 2
         cg.write("LOAD a\n")
         cg.write("PUT b\n")
     else:
-        lines += cg.get_number_in_register(value1[0], 'b')
+        lines += cg.get_number_in_register(value1.value, 'b')
     return lines
 
 
 # + and  -
-def add_sub(cg, value1, value2, mode='add') -> (None, str, int):
-    if value1[1] == 'NUM' and value2[1] == 'NUM':
+def add_sub(cg, value1: ValInfo, value2: ValInfo, mode='add') -> ValInfo:
+    if value1.v_type == 'NUM' and value2.v_type == 'NUM':
         if mode == 'add':
-            return value1[0] + value2[0], 'NUM', 0
+            return ValInfo(value1.value + value2.value, 'NUM', 0)
         else:
-            return max(value1[0] - value2[0], 0), 'NUM', 0
+            return ValInfo(max(value1.value - value2.value, 0), 'NUM', 0)
     lines = 0
-    if value2[1] == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value2[0], 'h') + 2
+    if value2.v_type == 'PIDENTIFIER':
+        lines += cg.get_number_in_register(value2.value, 'h') + 2
         cg.write("LOAD h\n")
         cg.write("PUT c\n")
-    elif value2[1] == 'AKU':
-        lines += cg.load_aku_idx(value2[0][0], value2[0][1]) + 2
+    elif value2.v_type == 'AKU':
+        lines += cg.load_aku_idx(value2.value[0], value2.value[1]) + 2
         cg.write("LOAD a\n")
         cg.write("PUT c\n")
     else:
-        lines += cg.get_number_in_register(value2[0], 'c')
-    if value1[1] == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value1[0], 'h') + 1
+        lines += cg.get_number_in_register(value2.value, 'c')
+    if value1.v_type == 'PIDENTIFIER':
+        lines += cg.get_number_in_register(value1.value, 'h') + 1
         cg.write("LOAD h\n")
-    elif value1[1] == 'AKU':
-        lines += cg.load_aku_idx(value1[0][0], value1[0][1]) + 1
+    elif value1.v_type == 'AKU':
+        lines += cg.load_aku_idx(value1.value[0], value1.value[1]) + 1
         cg.write("LOAD a\n")
     else:
-        lines += cg.get_number_in_register(value1[0], 'a')
+        lines += cg.get_number_in_register(value1.value, 'a')
     if mode == 'add':
         cg.write("ADD c\n")
     else:
         cg.write("SUB c\n")
-    return None, 'EXPRESSION', lines + 1
+    return ValInfo(None, 'EXPRESSION', lines + 1)
 
 
 # *
-def multiply(cg, value1, value2) -> (None, str, int):
-    if value1[1] == 'NUM' and value2[1] == 'NUM':
-        return value1[0] * value2[0], 'NUM', 0
+def multiply(cg, value1: ValInfo, value2: ValInfo) -> ValInfo:
+    if value1.v_type == 'NUM' and value2.v_type == 'NUM':
+        return ValInfo(value1.value * value2.value, 'NUM', 0)
     # Prepare registers
     lines = _prep_registers(cg, value1, value2)
     cg.write("RST d\n")
@@ -82,18 +85,18 @@ def multiply(cg, value1, value2) -> (None, str, int):
     cg.write(f"JPOS {init_lines}\n")
     cg.write("GET d\n")
     cg.write("ADD b\n")
-    return None, 'EXPRESSION', lines + 17
+    return ValInfo(None, 'EXPRESSION', lines + 17)
 
 
 # / and %
-def divide(cg, value1, value2, mode) -> (None, str, int):
-    if value1[1] == 'NUM' and value2[1] == 'NUM':
-        if value2[0] == 0:
-            return 0, 'NUM', 0
+def divide(cg, value1: ValInfo, value2: ValInfo, mode) -> ValInfo:
+    if value1.v_type == 'NUM' and value2.v_type == 'NUM':
+        if value2.value == 0:
+            return ValInfo(0, 'NUM', 0)
         if mode == 'div':
-            return value1[0] / value2[0], 'NUM', 0
+            return ValInfo(value1.value / value2.value, 'NUM', 0)
         else:
-            return value1[0] % value2[0], 'NUM', 0
+            return ValInfo(value1.value % value2.value, 'NUM', 0)
     # Prepare registers
     lines = _prep_registers(cg, value1, value2) + 1
     if mode == 'div':
@@ -149,4 +152,4 @@ def divide(cg, value1, value2, mode) -> (None, str, int):
     else:
         cg.write("GET e\n")
 
-    return None, 'EXPRESSION', lines + 25
+    return ValInfo(None, 'EXPRESSION', lines + 25)
