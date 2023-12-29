@@ -29,18 +29,24 @@ class Parser(SlyPar):
             exit(1)
 
     def check_if_set(self, pp, p, mode='error'):
+        def error_msg():
+            if mode == 'error':
+                self.cg.close()
+                print(f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
+                print("Compilation failed!")
+                exit(1)
+            else:
+                print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
+
         if self.cg.block_level > 0:
             mode = "conditional scope"
         if self.pg.definition:
             if pp.v_type == "PIDENTIFIER":
                 if not self.pg.is_set(pp):
-                    if mode == 'error':
-                        self.cg.close()
-                        print(f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
-                        print("Compilation failed!")
-                        exit(1)
-                    else:
-                        print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
+                    error_msg()
+            elif pp.v_type == "AKU":
+                if not self.pg.is_set(pp.identifier[0]) and self.pg.is_set(pp.identifier[1]):
+                    error_msg()
         elif pp.v_type == "PIDENTIFIER":
             if not self.allocator.is_set(pp):
                 if mode == 'error':
@@ -50,6 +56,9 @@ class Parser(SlyPar):
                     exit(1)
                 else:
                     print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
+        elif pp.v_type == "AKU":
+            if not self.allocator.is_set(pp.identifier[0]) and self.allocator.is_set(pp.identifier[1]):
+                error_msg()
 
     @_('procedures main')
     def program_all(self, p):
@@ -85,6 +94,8 @@ class Parser(SlyPar):
 
     @_('identifier ASSIGN expression ";"')
     def command(self, p) -> int:    # return number of lines of code written
+        if p[0].v_type == 'AKU':
+            self.check_if_set(ValInfo(p[0].value[1], "PIDENTIFIER", ident=p[0].identifier[1]), p)
         if self.pg.definition:
             self.pg.set_variable(p[0])
             return self.pg.add_assign_step(self.cg, p[0], p[2]) + p[2].lines
@@ -389,7 +400,7 @@ class Parser(SlyPar):
             return ValInfo([[p[0], p[2]], (None, None)], 'AKU')
         return ValInfo([self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[0]),
                         self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[2])],
-                       'AKU', ident=p[0])
+                       'AKU', ident=[p[0], p[2]])
 
     def error(self, p):
         self.cg.close()

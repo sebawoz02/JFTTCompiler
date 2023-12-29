@@ -40,13 +40,19 @@ class Allocator:
             raise NameError
         return self.variable_indexes[identifier]["type"]
 
-    def is_set(self, identifier: ValInfo):
-        if identifier.identifier not in self.variable_indexes.keys():
-            print(f"\033[91mUse of undeclared variable '{identifier.identifier}'!\033[0m")
-            raise NameError
-        if identifier.idx != -1 and not self.variable_indexes[identifier.identifier]["set"]:
-            return self.variable_indexes[identifier.identifier]["set"][identifier.idx]
-        return self.variable_indexes[identifier.identifier]["set"]
+    def is_set(self, identifier):
+        if isinstance(identifier, str):
+            if identifier not in self.variable_indexes.keys():
+                print(f"\033[91mUse of undeclared variable '{identifier}'!\033[0m")
+                raise NameError
+            return self.variable_indexes[identifier]["set"]
+        else:
+            if identifier.identifier not in self.variable_indexes.keys():
+                print(f"\033[91mUse of undeclared variable '{identifier.identifier}'!\033[0m")
+                raise NameError
+            if identifier.idx != -1 and not self.variable_indexes[identifier.identifier]["set"]:
+                return self.variable_indexes[identifier.identifier]["set"][identifier.idx]
+            return self.variable_indexes[identifier.identifier]["set"]
 
     def get_info(self, identifier):
         if identifier not in self.variable_indexes.keys():
@@ -55,12 +61,17 @@ class Allocator:
         return self.variable_indexes[identifier]
 
     def set_variable(self, identifier: ValInfo):
-        if identifier.identifier not in self.variable_indexes.keys():
-            print(f"\033[91mUse of undeclared variable '{identifier}'!\033[0m")
-            raise NameError
         if identifier.v_type == 'AKU':
-            self.variable_indexes[identifier.identifier]["set"] = True
-        elif identifier.idx != -1 and not self.variable_indexes[identifier.identifier]["set"]:
-            self.variable_indexes[identifier.identifier]["set"][identifier.idx] = True
+            if identifier.identifier[0] not in self.variable_indexes.keys():
+                print(f"\033[91mUse of undeclared variable '{identifier.identifier[0]}'!\033[0m")
+                raise NameError
+            self.variable_indexes[identifier.identifier[0]]["set"] = True
+
         else:
-            self.variable_indexes[identifier.identifier]["set"] = True
+            if identifier.identifier not in self.variable_indexes.keys():
+                print(f"\033[91mUse of undeclared variable '{identifier.identifier}'!\033[0m")
+                raise NameError
+            elif identifier.idx != -1 and not self.variable_indexes[identifier.identifier]["set"]:
+                self.variable_indexes[identifier.identifier]["set"][identifier.idx] = True
+            else:
+                self.variable_indexes[identifier.identifier]["set"] = True

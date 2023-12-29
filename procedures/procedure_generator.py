@@ -42,15 +42,23 @@ class ProcedureGenerator:
             self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"] = True
 
     def is_set(self, identifier: ValInfo):
-        if (identifier.identifier is None
-                or identifier.identifier in self.procedures_dict[self.current_procedure_name].head_declared_params):
+        if isinstance(identifier, str):
+            if identifier not in self.procedures_dict[self.current_procedure_name].params.keys():
+                print(f"\033[91mUse of undeclared variable '{identifier}'!\033[0m")
+                raise NameError
+            if identifier not in self.procedures_dict[self.current_procedure_name].head_declared_params:
+                return self.procedures_dict[self.current_procedure_name].params[identifier]["set"]
             return True
-        if identifier.identifier not in self.procedures_dict[self.current_procedure_name].params.keys():
-            print(f"\033[91mUse of undeclared variable '{identifier.identifier}'!\033[0m")
-            raise NameError
-        if identifier.idx != -1 and not self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]:
-            return self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"][identifier.idx]
-        return self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]
+        else:
+            if (identifier.identifier is None
+                    or identifier.identifier in self.procedures_dict[self.current_procedure_name].head_declared_params):
+                return True
+            if identifier.identifier not in self.procedures_dict[self.current_procedure_name].params.keys():
+                print(f"\033[91mUse of undeclared variable '{identifier.identifier}'!\033[0m")
+                raise NameError
+            if identifier.idx != -1 and not self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]:
+                return self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"][identifier.idx]
+            return self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]
 
     def add_param(self, allocator, identifier, no_bytes, address=-1):
         self.procedures_dict[self.current_procedure_name].add_param(allocator, identifier, no_bytes, address)
