@@ -12,7 +12,7 @@ import sys
 # ex7 - OK
 # ex8 - OK
 # ex9 - NOT OK, zły wynik
-# ex10- NOT OK, nieskonczona pętla
+# ex10- OK
 
 # Oblugiwane błedy:
 # - Double declaration (zmienna, procedura, zmienne w procedurze)

@@ -103,7 +103,7 @@ class Parser(SlyPar):
             self.pg.add_step(self.cg.flush_block_buffer, [None])
             return p[1][0] + p[3] + 3
         total_lines = self.cg.line
-        self.cg.flush_block_buffer(total_lines + p[3] + 1)
+        self.cg.flush_block_buffer(total_lines)
         return p[1] + p[3]
 
     @_('WHILE condition DO commands ENDWHILE')
@@ -297,11 +297,11 @@ class Parser(SlyPar):
 
     @_('value EQ value')
     def condition(self, p):
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             r = self.pg.add_func_with_two_values(self.cg.op_eq, p)
             return r, self.pg.get_curr_step_idx()   # return current step idx to make jump fix easier
-        self.check_if_set(p[0], p)
-        self.check_if_set(p[2], p)
         return self.cg.op_eq(p[0], p[2])      # number of lines of code written
 
     @_('value NEQ value')
