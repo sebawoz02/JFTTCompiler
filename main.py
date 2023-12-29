@@ -6,12 +6,12 @@ import sys
 # ex1 - OK
 # ex2 - OK
 # ex3 - OK
-# ex4 - NOT OK, zły wynik
+# ex4 - NOT OK, wychodzenie poza range przy mnożeniu??
 # ex5 - OK
 # ex6 - OK
 # ex7 - OK
 # ex8 - OK
-# ex9 - NOT OK, zły wynik
+# ex9 - OK
 # ex10- OK
 
 # Oblugiwane błedy:
@@ -24,6 +24,11 @@ import sys
 # - Index out of range
 # - Double array -> a[b[1]]
 # - Use of int as array/array as int
+
+# Optional todo:
+# - turning off warnings
+# - default out file
+# - smarter registry management h ( and possibly g )
 
 if __name__ == '__main__':
     src = sys.argv[1]

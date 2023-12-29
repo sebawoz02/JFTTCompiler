@@ -67,8 +67,13 @@ def multiply(cg, value1: ValInfo, value2: ValInfo) -> ValInfo:
     lines = _prep_registers(cg, value1, value2)
     cg.write("RST d\n")
 
-    # Multiplication algorithm
-    init_lines = cg.line
+    # Multiplication algorithm a * b = reg_b + reg_d
+    init_lines = cg.line    # reg_b - 'a', reg_c - 'b', reg_d - rest
+    cg.write("GET c\n")
+    cg.write(f"JZERO {cg.line + 18}\n")
+    cg.write("GET c\n")
+    cg.write("DEC a\n")
+    cg.write(f"JZERO {cg.line + 13}\n")
     cg.write("GET c\n")  #
     cg.write("SHR a\n")  # JODD - c is odd number
     cg.write("SHL a\n")  #
@@ -80,12 +85,10 @@ def multiply(cg, value1: ValInfo, value2: ValInfo) -> ValInfo:
     cg.write("PUT d\n")
     cg.write("SHL b\n")  # jump
     cg.write("SHR c\n")
-    cg.write("GET c\n")
-    cg.write("DEC a\n")
-    cg.write(f"JPOS {init_lines}\n")
+    cg.write(f"JUMP {init_lines+2}\n")
     cg.write("GET d\n")
     cg.write("ADD b\n")
-    return ValInfo(None, 'EXPRESSION', lines + 17)
+    return ValInfo(None, 'EXPRESSION', lines + 20)
 
 
 # / and %
