@@ -62,6 +62,8 @@ class Allocator:
         return self.variable_indexes[identifier]
 
     def set_variable(self, identifier: ValInfo):
+        if identifier.identifier is None:
+            return
         if identifier.v_type == 'AKU':
             if identifier.identifier[0] not in self.variable_indexes.keys():
                 print(f"\033[91mUse of undeclared variable '{identifier.identifier[0]}'!\033[0m")

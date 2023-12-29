@@ -36,8 +36,8 @@ class GenStep:
                     for j in range(len(self.params[i].value)):
                         if self.params[i].value[j] in params_dict.keys():
                             self.params[i].value[j] = params_dict[self.params[i].value[j]]["idx"]
-                            if self.optional is not None and self.optional[i][j] is not None:
-                                self.params[i].value[j] += self.optional[i][j]
+                            if self.optional is not None and self.optional[i][0][j] is not None:
+                                self.params[i].value += self.optional[i][0][j]
                 else:
                     if self.params[i].value in params_dict.keys():
                         self.params[i].value = params_dict[self.params[i].value]["idx"]
@@ -68,19 +68,20 @@ class Procedure:
         if no_bytes == 0 and address != -1:
             print(f"\033[91mCannot initialize array with size 0!\033[0m")
             raise NameError
-
         t = "1"
         s = False
         if identifier[0] == "T":
             identifier = identifier[1:]
             t = "T"
+            no_bytes = -1
         elif no_bytes > 1:
             t = "T"
             s = [False]*no_bytes
         self.params[identifier] = {"name": identifier, "idx": address, "set": s, "type": t, "size": no_bytes}
         if address == -1:
             self.head_declared_params.append(identifier)
-        allocator.cur_idx += no_bytes
+        else:
+            allocator.cur_idx += no_bytes
 
     def _fix_params(self, params):
         if len(params) != len(self.head_declared_params):

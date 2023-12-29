@@ -70,8 +70,6 @@ class Parser(SlyPar):
 
     @_('identifier ASSIGN expression ";"')
     def command(self, p) -> int:    # return number of lines of code written
-        if p[0].v_type == 'AKU':
-            self.check_if_set(ValInfo(p[0].value[1], "PIDENTIFIER", ident=p[0].identifier[1]), p)
         if self.pg.definition:
             self.pg.set_variable(p[0])
             return self.pg.add_assign_step(self.cg, p[0], p[2]) + p[2].lines
@@ -166,14 +164,15 @@ class Parser(SlyPar):
                 print(f"\033[91mError at line {p.lineno} in procedure '{p[0]}': Recursion is prohibited!\033[0m")
                 self.cg.close()
                 exit(1)
-            self.pg.add_step(self.EXCEPTION_WRAPPER,  [NameError, self.pg.generate_procedure, self.cg, p[0], p[2]])
+            self.pg.add_step(self.pg.generate_procedure, [self.cg, p[0], p[2]])
             return 1
+
         return self.EXCEPTION_WRAPPER(NameError, self.pg.generate_procedure, self.cg, p[0], p[2])
 
     @_('declarations "," PIDENTIFIER')
     def declarations(self, p) -> None:
         if self.pg.definition:
-            self.pg.add_param(self.allocator, p[2], 1, self.allocator.cur_idx)
+            self.pg.add_param(self.allocator, p[2], 1, address=self.allocator.cur_idx)
             return
         self.EXCEPTION_WRAPPER(NameError, self.allocator.allocate, 1, p.PIDENTIFIER)
 
@@ -187,7 +186,7 @@ class Parser(SlyPar):
     @_('PIDENTIFIER')
     def declarations(self, p) -> None:
         if self.pg.definition:
-            self.pg.add_param(self.allocator, p[0], 1, self.allocator.cur_idx)
+            self.pg.add_param(self.allocator, p[0], 1, address=self.allocator.cur_idx)
             return
         self.EXCEPTION_WRAPPER(NameError, self.allocator.allocate, 1, p.PIDENTIFIER)
 
@@ -204,7 +203,7 @@ class Parser(SlyPar):
 
     @_('args_decl "," "T" PIDENTIFIER')
     def args_decl(self, p) -> list[str]:
-        return [*p[0], "T" + p[2]]
+        return [*p[0], "T" + p[3]]
 
     @_('PIDENTIFIER')
     def args_decl(self, p) -> list[str]:
@@ -212,20 +211,24 @@ class Parser(SlyPar):
 
     @_('"T" PIDENTIFIER')
     def args_decl(self, p) -> list[str]:
-        return ["T" + p[0]]
+        return ["T" + p[1]]
 
     @_('args "," PIDENTIFIER')
     def args(self, p) -> list[str]:
         self.check_if_set(ValInfo(p[2], 'PIDENTIFIER', ident=p[2]), p, mode='procedure call')
         if self.pg.definition:
+            self.pg.set_variable(ValInfo(p[2], 'PIDENTIFIER', ident=p[2]))
             return [*p[0], self.EXCEPTION_WRAPPER(NameError, self.pg.get_param_info, p[2])]
+        self.allocator.set_variable(ValInfo(p[2], 'PIDENTIFIER', ident=p[2]))
         return [*p[0], self.EXCEPTION_WRAPPER(NameError, self.allocator.get_info, p[2])]
 
     @_('PIDENTIFIER')
     def args(self, p) -> list[str]:
         self.check_if_set(ValInfo(p[0], 'PIDENTIFIER', ident=p[0]), p, mode='procedure call')
         if self.pg.definition:
+            self.pg.set_variable(ValInfo(p[0], 'PIDENTIFIER', ident=p[0]))
             return [self.EXCEPTION_WRAPPER(NameError, self.pg.get_param_info, p[0])]
+        self.pg.set_variable(ValInfo(p[0], 'PIDENTIFIER', ident=p[0]))
         return [self.EXCEPTION_WRAPPER(NameError, self.allocator.get_info, p[0])]
 
     @_('value')
@@ -266,7 +269,7 @@ class Parser(SlyPar):
         return self.cg.multiply(p[0], p[2])     # number of lines of code written
 
     @_('value "/" value')
-    def expression(self, p) -> ValInfo | int:    # TODO: div
+    def expression(self, p) -> ValInfo | int:
         self.check_if_set(p[0], p)
         self.check_if_set(p[2], p)
         if self.pg.definition:
@@ -278,7 +281,7 @@ class Parser(SlyPar):
         return self.cg.divide(p[0], p[2])   # number of lines of code written
 
     @_('value "%" value')
-    def expression(self, p) -> ValInfo | int:    # TODO: div
+    def expression(self, p) -> ValInfo | int:    # TODO: modulo
         self.check_if_set(p[0], p)
         self.check_if_set(p[2], p)
         if self.pg.definition:
@@ -360,7 +363,7 @@ class Parser(SlyPar):
     def identifier(self, p):
         self.check_if_not_array(p[0], p)
         if self.pg.definition:
-            return ValInfo([p[0], None], 'PIDENTIFIER')
+            return ValInfo([p[0], None], 'PIDENTIFIER', ident=p[0])
         return ValInfo(self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p.PIDENTIFIER),
                        'PIDENTIFIER', ident=p[0])
 
@@ -369,7 +372,7 @@ class Parser(SlyPar):
         self.check_if_array(p[0], p)
         self.check_if_index_in_range(p[0], int(p[2]), p)
         if self.pg.definition:
-            return ValInfo([p[0], int(p[2])], 'PIDENTIFIER')
+            return ValInfo([p[0], int(p[2])], 'PIDENTIFIER', ident=p[0], idx=int(p.NUM))
         return ValInfo(self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p.PIDENTIFIER) + int(p.NUM),
                        'PIDENTIFIER', ident=p[0], idx=int(p.NUM))
 
@@ -378,7 +381,7 @@ class Parser(SlyPar):
         self.check_if_not_array(p[2], p)
         self.check_if_array(p[0], p)
         if self.pg.definition:
-            return ValInfo([[p[0], p[2]], (None, None)], 'AKU')
+            return ValInfo([[p[0], p[2]], (None, None)], 'AKU', ident=[p[0], p[2]])
         return ValInfo([self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[0]),
                         self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[2])],
                        'AKU', ident=[p[0], p[2]])

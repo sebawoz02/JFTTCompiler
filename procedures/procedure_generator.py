@@ -36,7 +36,7 @@ class ProcedureGenerator:
             raise NameError
         if identifier.v_type == 'AKU':
             self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"] = True
-        elif identifier.idx != -1 and not self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]:
+        elif identifier.idx != -1 and not isinstance(self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"], bool):
             self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"][identifier.idx] = True
         else:
             self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"] = True
@@ -85,7 +85,7 @@ class ProcedureGenerator:
         if p.v_type != 'AKU':
             self.add_step(func, [ValInfo(p.value[0], p.v_type)], [[p.value[1], None]])
         else:
-            self.add_step(func, [ValInfo([p.value[0], p.value[1]], p.v_type)])
+            self.add_step(func, [ValInfo(p.value[0], p.v_type)])
         return 1
 
     """
@@ -108,7 +108,7 @@ class ProcedureGenerator:
                 steps += 1
                 self.add_step(cg.write, ["PUT c\n"])
             steps += 1
-            self.add_step(cg.load_aku_idx, [identifier.value[0], identifier.value[1]])
+            self.add_step(cg.load_aku_idx, identifier.value[0])
             if expression.v_type == 'EXPRESSION':
                 self.add_step(cg.write, ["PUT b\n"])
                 self.add_step(cg.write, ["GET c\n"])

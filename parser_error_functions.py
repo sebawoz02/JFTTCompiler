@@ -24,6 +24,8 @@ def check_if_set(par, pp, p, mode='error'):
             if not par.pg.is_set(pp):
                 error_msg()
         elif pp.v_type == "AKU":
+            if pp.identifier is None:
+                return
             if not par.pg.is_set(pp.identifier[0]) and par.pg.is_set(pp.identifier[1]):
                 error_msg()
     elif pp.v_type == "PIDENTIFIER":
@@ -77,7 +79,7 @@ def check_if_array(par, pp, p):
 def check_if_index_in_range(par, pp, num, p):
     if par.pg.definition:
         info = par.EXCEPTION_WRAPPER(NameError, par.pg.get_param_info, pp)
-        if info['size'] <= num:
+        if info['size'] <= num and info['size'] != -1:
             par.cg.close()
             print(f"\033[91mArray '{pp}' index {num} out of range! Line {p.lineno}.\033[0m")
             print("Compilation failed!")
