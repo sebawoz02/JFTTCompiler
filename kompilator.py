@@ -26,14 +26,14 @@ import argparse
 # - Use of int as array/array as int
 
 # Optional todo:
-# - smarter registry management h ( and possibly g )
+# - smarter registry management h
 
 if __name__ == '__main__':
-    arg_pars = argparse.ArgumentParser(description="JFTT Compiler 2023")
+    arg_pars = argparse.ArgumentParser(description="JFTT Compiler 2023 Sebastian Woźniak")
     arg_pars.add_argument('input_file', help='Input file')
     arg_pars.add_argument('output_file', nargs='?', default=None, help='Output file (optional)')
     arg_pars.add_argument('--Wno-unset', action='store_true'
-                          , help='Disable unset warnings. ( Errors still active)')
+                          , help='Disable unset warnings. (Errors still active)')
 
     args = arg_pars.parse_args()
     warnings = []
