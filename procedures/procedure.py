@@ -1,4 +1,5 @@
 from value import ValInfo
+import copy
 
 
 class GenStep:
@@ -15,40 +16,42 @@ class GenStep:
     Replace all prepared parameters with their addresses and run the function.
     """
     def execute(self, params_dict: dict) -> int | ValInfo:
-        for i in range(len(self.params)):
+        par = copy.copy(self.params)
 
-            if isinstance(self.params[i], list):
-                for j in range(len(self.params[i])):
-                    if isinstance(self.params[i][j], list):
-                        for k in range(len(self.params[i][j])):
-                            if self.params[i][j][k] in params_dict.keys():
-                                self.params[i][j][k] = params_dict[self.params[i][j][k]]["idx"]
-                    elif isinstance(self.params[i][j], dict) and self.params[i][j]["name"] in params_dict.keys():
-                        self.params[i][j]["idx"] = params_dict[self.params[i][j]["name"]]["idx"]
-                        if self.params[i][j]["type"] != params_dict[self.params[i][j]["name"]]["type"]:
+        for i in range(len(par)):
+
+            if isinstance(par[i], list):
+                for j in range(len(par[i])):
+                    if isinstance(par[i][j], list):
+                        for k in range(len(par[i][j])):
+                            if par[i][j][k] in params_dict.keys():
+                                par[i][j][k] = params_dict[par[i][j][k]]["idx"]
+                    elif isinstance(par[i][j], dict) and par[i][j]["name"] in params_dict.keys():
+                        par[i][j]["idx"] = params_dict[par[i][j]["name"]]["idx"]
+                        if par[i][j]["type"] != params_dict[par[i][j]["name"]]["type"]:
                             print(f"\033[91mWrong type variable passed to procedure!\033[0m")
                             raise NameError
                         if self.optional is not None and self.optional[i][j] is not None:
-                            self.params[i][j] += self.optional[i][j]
+                            par[i][j] += self.optional[i][j]
 
-            elif isinstance(self.params[i], ValInfo):
-                if isinstance(self.params[i].value, list):
-                    for j in range(len(self.params[i].value)):
-                        if self.params[i].value[j] in params_dict.keys():
-                            self.params[i].value[j] = params_dict[self.params[i].value[j]]["idx"]
+            elif isinstance(par[i], ValInfo):
+                if isinstance(par[i].value, list):
+                    for j in range(len(par[i].value)):
+                        if par[i].value[j] in params_dict.keys():
+                            par[i].value[j] = params_dict[par[i].value[j]]["idx"]
                             if self.optional is not None and self.optional[i][0][j] is not None:
-                                self.params[i].value += self.optional[i][0][j]
+                                par[i].value += self.optional[i][0][j]
                 else:
-                    if self.params[i].value in params_dict.keys():
-                        self.params[i].value = params_dict[self.params[i].value]["idx"]
+                    if par[i].value in params_dict.keys():
+                        par[i].value = params_dict[par[i].value]["idx"]
                         if self.optional is not None and self.optional[i][0] is not None:
-                            self.params[i].value += self.optional[i][0]
+                            par[i].value += self.optional[i][0]
 
-            elif self.params[i] in params_dict.keys():
-                self.params[i] = params_dict[self.params[i]]["idx"]
+            elif par[i] in params_dict.keys():
+                par[i] = params_dict[par[i]]["idx"]
                 if self.optional is not None and self.optional[i] is not None:
-                    self.params[i] += self.optional[i]
-        return self.func(*self.params)
+                    par[i] += self.optional[i]
+        return self.func(*par)
 
 
 class Procedure:
