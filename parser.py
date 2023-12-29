@@ -4,6 +4,7 @@ from code_generator import CodeGenerator
 from allocator import Allocator
 from procedures.procedure_generator import ProcedureGenerator
 from value import ValInfo
+import parser_error_functions as perr
 
 
 class Parser(SlyPar):
@@ -21,44 +22,19 @@ class Parser(SlyPar):
         print("Compilation completed successfully!")
 
     def EXCEPTION_WRAPPER(self, ex, func, *args):
-        try:
-            return func(*args)
-        except ex:
-            self.cg.close()
-            print("Compilation failed!")
-            exit(1)
+        return perr.EXCEPTION_WRAPPER(self, ex, func, *args)
 
     def check_if_set(self, pp, p, mode='error'):
-        def error_msg():
-            if mode == 'error':
-                self.cg.close()
-                print(f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
-                print("Compilation failed!")
-                exit(1)
-            else:
-                print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
+        perr.check_if_set(self, pp, p, mode)
 
-        if self.cg.block_level > 0:
-            mode = "conditional scope"
-        if self.pg.definition:
-            if pp.v_type == "PIDENTIFIER":
-                if not self.pg.is_set(pp):
-                    error_msg()
-            elif pp.v_type == "AKU":
-                if not self.pg.is_set(pp.identifier[0]) and self.pg.is_set(pp.identifier[1]):
-                    error_msg()
-        elif pp.v_type == "PIDENTIFIER":
-            if not self.allocator.is_set(pp):
-                if mode == 'error':
-                    self.cg.close()
-                    print(f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
-                    print("Compilation failed!")
-                    exit(1)
-                else:
-                    print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
-        elif pp.v_type == "AKU":
-            if not self.allocator.is_set(pp.identifier[0]) and self.allocator.is_set(pp.identifier[1]):
-                error_msg()
+    def check_if_not_array(self, pp, p):
+        perr.check_if_not_array(self, pp, p)
+
+    def check_if_array(self, pp, p):
+        perr.check_if_array(self, pp, p)
+
+    def check_if_index_in_range(self, pp, num, p):
+        perr.check_if_index_in_range(self, pp, num, p)
 
     @_('procedures main')
     def program_all(self, p):
@@ -382,6 +358,7 @@ class Parser(SlyPar):
 
     @_('PIDENTIFIER')
     def identifier(self, p):
+        self.check_if_not_array(p[0], p)
         if self.pg.definition:
             return ValInfo([p[0], None], 'PIDENTIFIER')
         return ValInfo(self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p.PIDENTIFIER),
@@ -389,6 +366,8 @@ class Parser(SlyPar):
 
     @_('PIDENTIFIER "[" NUM "]"')
     def identifier(self, p):
+        self.check_if_array(p[0], p)
+        self.check_if_index_in_range(p[0], int(p[2]), p)
         if self.pg.definition:
             return ValInfo([p[0], int(p[2])], 'PIDENTIFIER')
         return ValInfo(self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p.PIDENTIFIER) + int(p.NUM),
@@ -396,6 +375,8 @@ class Parser(SlyPar):
 
     @_('PIDENTIFIER "[" PIDENTIFIER "]"')
     def identifier(self, p):
+        self.check_if_not_array(p[2], p)
+        self.check_if_array(p[0], p)
         if self.pg.definition:
             return ValInfo([[p[0], p[2]], (None, None)], 'AKU')
         return ValInfo([self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[0]),

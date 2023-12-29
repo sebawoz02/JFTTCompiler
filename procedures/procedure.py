@@ -77,7 +77,7 @@ class Procedure:
         elif no_bytes > 1:
             t = "T"
             s = [False]*no_bytes
-        self.params[identifier] = {"name": identifier, "idx": address, "set": s, "type": t}
+        self.params[identifier] = {"name": identifier, "idx": address, "set": s, "type": t, "size": no_bytes}
         if address == -1:
             self.head_declared_params.append(identifier)
         allocator.cur_idx += no_bytes

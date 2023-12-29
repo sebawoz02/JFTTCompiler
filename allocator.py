@@ -25,7 +25,8 @@ class Allocator:
         if no_bytes > 1:
             t = "T"
             s = [False] * no_bytes
-        self.variable_indexes[identifier] = {"name": identifier, "idx": self.cur_idx, "set": s, "type": t}
+        self.variable_indexes[identifier] = {"name": identifier, "idx": self.cur_idx,
+                                             "set": s, "type": t, "size": no_bytes}
         self.cur_idx += no_bytes
 
     def get_index(self, identifier):

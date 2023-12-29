@@ -21,6 +21,9 @@ import sys
 # - Usage of undeclared variable ( program, procedure)
 # - Usage of unset variable
 # - Invalid type passed to procedure
+# - Index out of range
+# - Double array -> a[b[1]]
+# - Use of int as array/array as int
 
 if __name__ == '__main__':
     src = sys.argv[1]
