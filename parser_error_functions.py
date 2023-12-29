@@ -14,11 +14,11 @@ def EXCEPTION_WRAPPER(par, ex, func, *args):
         exit(1)
 
 
-def check_if_set(par, pp, p, mode='error'):
+def check_if_set(par, pp, p, warnings, mode='error'):
     def error_msg():
         if mode == 'error':
             _exit(par, f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
-        else:
+        elif "unset" in warnings:
             print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
 
     if par.cg.block_level > 0:
@@ -36,7 +36,7 @@ def check_if_set(par, pp, p, mode='error'):
         if not par.allocator.is_set(pp):
             if mode == 'error':
                 _exit(par, f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
-            else:
+            elif "unset" in warnings:
                 print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
     elif pp.v_type == "AKU":
         if not par.allocator.is_set(pp.identifier[0]) and par.allocator.is_set(pp.identifier[1]):

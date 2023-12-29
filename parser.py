@@ -11,11 +11,12 @@ class Parser(SlyPar):
 
     tokens = Lexer.tokens
 
-    def __init__(self, out):
+    def __init__(self, out, warnings):
         super().__init__()
         self.cg = CodeGenerator(out)
         self.allocator = Allocator()
         self.pg = ProcedureGenerator()
+        self.warn = warnings
 
     def finish(self):
         self.cg.close()
@@ -25,7 +26,7 @@ class Parser(SlyPar):
         return perr.EXCEPTION_WRAPPER(self, ex, func, *args)
 
     def check_if_set(self, pp, p, mode='error'):
-        perr.check_if_set(self, pp, p, mode)
+        perr.check_if_set(self, pp, p, self.warn, mode)
 
     def check_if_not_array(self, pp, p):
         perr.check_if_not_array(self, pp, p)
