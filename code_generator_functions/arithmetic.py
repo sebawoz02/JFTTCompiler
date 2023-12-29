@@ -4,7 +4,7 @@ from value import ValInfo
 def _prep_registers(cg, value1: ValInfo, value2: ValInfo):
     lines = 0
     if value2.v_type == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value2.value, 'h') + 1
+        lines += cg.get_number_in_register(value2.value, 'h') + 2
         cg.write("LOAD h\n")
         cg.write("PUT c\n")
     elif value2.v_type == 'AKU':
@@ -103,6 +103,8 @@ def divide(cg, value1: ValInfo, value2: ValInfo, mode) -> ValInfo:
     cg.write("RST f\n")
 
     # Division algorithm    b - 'a'(dividend), c - 'b', d - quotient, e - power, f - divisor
+    cg.write("GET c\n")
+    cg.write(f"JZERO {cg.line + 22}\n")
     init_line = cg.line
     cg.write("GET c\n")
     cg.write("SUB b\n")

@@ -228,7 +228,7 @@ class Parser(SlyPar):
         if self.pg.definition:
             self.pg.set_variable(ValInfo(p[0], 'PIDENTIFIER', ident=p[0]))
             return [self.EXCEPTION_WRAPPER(NameError, self.pg.get_param_info, p[0])]
-        self.pg.set_variable(ValInfo(p[0], 'PIDENTIFIER', ident=p[0]))
+        self.allocator.set_variable(ValInfo(p[0], 'PIDENTIFIER', ident=p[0]))
         return [self.EXCEPTION_WRAPPER(NameError, self.allocator.get_info, p[0])]
 
     @_('value')

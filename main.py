@@ -12,7 +12,7 @@ import sys
 # ex6 - OK
 # ex7 - OK
 # ex8 - brakuje modulo
-# ex9 - brakuje dzielenia
+# ex9 - NOT OK ?
 
 # Oblugiwane błedy:
 # - Double declaration (zmienna, procedura, zmienne w procedurze)
