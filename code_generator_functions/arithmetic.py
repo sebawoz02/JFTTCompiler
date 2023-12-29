@@ -99,7 +99,11 @@ def divide(cg, value1: ValInfo, value2: ValInfo, mode) -> ValInfo:
             return ValInfo(value1.value % value2.value, 'NUM', 0)
     # Prepare registers
     lines = _prep_registers(cg, value1, value2) + 2
-    cg.write("RST d\n")
+    if mode == 'modulo':
+        cg.write("GET b\n")
+        cg.write("PUT d\n")
+    else:
+        cg.write("RST d\n")
     cg.write("RST f\n")
 
     # Division algorithm    b - 'a'(dividend), c - 'b', d - quotient, e - power, f - divisor
@@ -108,29 +112,38 @@ def divide(cg, value1: ValInfo, value2: ValInfo, mode) -> ValInfo:
     init_line = cg.line
     cg.write("GET c\n")
     cg.write("SUB b\n")
-    cg.write(f"JPOS {cg.line+18}\n")  # while a >= b(jump if a < b)
+    jump = cg.line+19
+    if mode == 'modulo':
+        jump -= 2
+    cg.write(f"JPOS {jump}\n")  # while a >= b(jump if b - a > 0)
     # {
     cg.write("RST e\n")
     cg.write("INC e\n")  # power = 1
     cg.write("GET c\n")
     cg.write("PUT f\n")  # divisor = b
 
-    cg.write("GET c\n")
+    cg.write("GET f\n")
     cg.write("SHL a\n")
-    cg.write("SUB b\n")
-    cg.write(f"JPOS {cg.line + 3}\n")  # while a >= b*2
+    cg.write("SUB b\n")  # divisor*2 - a
+    cg.write(f"JPOS {cg.line + 4}\n")  # while a >= divisor*2
     # {
     cg.write("SHL f\n")  # divisor *= 2
     cg.write("SHL e\n")  # power *= 2
+    cg.write(f"JUMP {cg.line - 6}\n")
     # }
     cg.write("GET b\n")
     cg.write("SUB f\n")
     cg.write("PUT b\n")  # a -= divisor
-    cg.write("GET d\n")
-    cg.write("ADD e\n")
-    cg.write("PUT d\n")  # quotient += power
+    if mode == 'div':
+        cg.write("GET d\n")
+        cg.write("ADD e\n")
+        cg.write("PUT d\n")  # quotient += power
+    else:
+        cg.write("PUT d\n")
     cg.write(f"JUMP {init_line}\n")
     # }
     cg.write("GET d\n")
 
-    return ValInfo(None, 'EXPRESSION', lines + 21)
+    if mode == 'modulo':
+        lines -= 1
+    return ValInfo(None, 'EXPRESSION', lines + 24)

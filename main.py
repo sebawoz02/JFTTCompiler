@@ -2,17 +2,17 @@ from lexer import Lexer
 from parser import Parser
 import sys
 
-# TODO 2: division/modulo
 
-# ex1 - brakuje dzielenia i modulo
+# ex1 - OK
 # ex2 - OK
 # ex3 - OK
-# ex4 - brakuje modulo
-# ex5 - brakuje modulo
+# ex4 - NOT OK, zły wynik
+# ex5 - OK
 # ex6 - OK
 # ex7 - OK
-# ex8 - brakuje modulo
-# ex9 - NOT OK ?
+# ex8 - OK
+# ex9 - NOT OK, zły wynik
+# ex10- NOT OK, nieskonczona pętla
 
 # Oblugiwane błedy:
 # - Double declaration (zmienna, procedura, zmienne w procedurze)
