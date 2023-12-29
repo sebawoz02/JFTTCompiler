@@ -16,31 +16,37 @@ class GenStep:
     """
     def execute(self, params_dict: dict) -> int | ValInfo:
         for i in range(len(self.params)):
+
             if isinstance(self.params[i], list):
                 for j in range(len(self.params[i])):
                     if isinstance(self.params[i][j], list):
                         for k in range(len(self.params[i][j])):
                             if self.params[i][j][k] in params_dict.keys():
-                                self.params[i][j][k] = params_dict[self.params[i][j][k]]
-                    elif self.params[i][j] in params_dict.keys():
-                        self.params[i][j] = params_dict[self.params[i][j]]
-                        if self.optional[i][j] is not None:
+                                self.params[i][j][k] = params_dict[self.params[i][j][k]]["idx"]
+                    elif isinstance(self.params[i][j], dict) and self.params[i][j]["name"] in params_dict.keys():
+                        self.params[i][j]["idx"] = params_dict[self.params[i][j]["name"]]["idx"]
+                        if self.params[i][j]["type"] != params_dict[self.params[i][j]["name"]]["type"]:
+                            print(f"\033[91mWrong type variable passed to procedure!\033[0m")
+                            raise NameError
+                        if self.optional is not None and self.optional[i][j] is not None:
                             self.params[i][j] += self.optional[i][j]
+
             elif isinstance(self.params[i], ValInfo):
                 if isinstance(self.params[i].value, list):
                     for j in range(len(self.params[i].value)):
                         if self.params[i].value[j] in params_dict.keys():
-                            self.params[i].value[j] = params_dict[self.params[i].value[j]]
-                            if self.optional[i][j] is not None:
+                            self.params[i].value[j] = params_dict[self.params[i].value[j]]["idx"]
+                            if self.optional is not None and self.optional[i][j] is not None:
                                 self.params[i].value[j] += self.optional[i][j]
                 else:
                     if self.params[i].value in params_dict.keys():
-                        self.params[i].value = params_dict[self.params[i].value]
-                        if self.optional[i][0] is not None:
+                        self.params[i].value = params_dict[self.params[i].value]["idx"]
+                        if self.optional is not None and self.optional[i][0] is not None:
                             self.params[i].value += self.optional[i][0]
+
             elif self.params[i] in params_dict.keys():
-                self.params[i] = params_dict[self.params[i]]
-                if self.optional[i] is not None:
+                self.params[i] = params_dict[self.params[i]]["idx"]
+                if self.optional is not None and self.optional[i] is not None:
                     self.params[i] += self.optional[i]
         return self.func(*self.params)
 
@@ -59,7 +65,19 @@ class Procedure:
         if allocator.cur_idx + no_bytes >= (1 << 62):
             print(f"\033[91mAllocation error. Out of memory!\033[0m")
             raise NameError
-        self.params[identifier] = address
+        if no_bytes == 0 and address != -1:
+            print(f"\033[91mCannot initialize array with size 0!\033[0m")
+            raise NameError
+
+        t = "1"
+        s = False
+        if identifier[0] == "T":
+            identifier = identifier[1:]
+            t = "T"
+        elif no_bytes > 1:
+            t = "T"
+            s = [False]*no_bytes
+        self.params[identifier] = {"name": identifier, "idx": address, "set": s, "type": t}
         if address == -1:
             self.head_declared_params.append(identifier)
         allocator.cur_idx += no_bytes
@@ -68,8 +86,13 @@ class Procedure:
         if len(params) != len(self.head_declared_params):
             print(f"\033[91mNot enough params in procedure call!\033[0m")
             raise NameError
+
         for i in range(len(params)):
-            self.params[self.head_declared_params[i]] = params[i]
+            self.params[self.head_declared_params[i]]["idx"] = params[i]["idx"]
+            self.params[self.head_declared_params[i]]["set"] = params[i]["set"]
+            if self.params[self.head_declared_params[i]]["type"] != params[i]["type"]:
+                print(f"\033[91mWrong type variable passed to procedure!\033[0m")
+                raise NameError
 
     def add_step(self, func, params, optional):
         self.gen_steps.append(GenStep(func, params, optional))

@@ -15,16 +15,47 @@ class ProcedureGenerator:
         if name in self.procedures_dict.keys():
             print(f"\033[91mProcedure with name '{name}' already declared!\033[0m")
             raise NameError
+
         self.procedures_dict[name] = Procedure(name)
         self.definition = True
         self.current_procedure_name = name
         for p in params:
             self.add_param(allocator, p, 0)
 
+    def get_param_info(self, name):
+        if name not in self.procedures_dict[self.current_procedure_name].params.keys():
+            print(f"\033[91mUse of undeclared variable '{name}'!\033[0m")
+            raise NameError
+        return self.procedures_dict[self.current_procedure_name].params[name]
+
+    def set_variable(self, identifier: ValInfo):
+        if identifier.v_type != 'PIDENTIFIER' or identifier.identifier is None:
+            return
+        if identifier.identifier not in self.procedures_dict[self.current_procedure_name].params.keys():
+            print(f"\033[91mUse of undeclared variable '{identifier.identifier}'!\033[0m")
+            raise NameError
+        if identifier.v_type == 'AKU':
+            self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"] = True
+        elif identifier.idx != -1 and not self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]:
+            self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"][identifier.idx] = True
+        else:
+            self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"] = True
+
+    def is_set(self, identifier: ValInfo):
+        if (identifier.identifier is None
+                or identifier.identifier in self.procedures_dict[self.current_procedure_name].head_declared_params):
+            return True
+        if identifier.identifier not in self.procedures_dict[self.current_procedure_name].params.keys():
+            print(f"\033[91mUse of undeclared variable '{identifier.identifier}'!\033[0m")
+            raise NameError
+        if identifier.idx != -1 and not self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]:
+            return self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"][identifier.idx]
+        return self.procedures_dict[self.current_procedure_name].params[identifier.identifier]["set"]
+
     def add_param(self, allocator, identifier, no_bytes, address=-1):
         self.procedures_dict[self.current_procedure_name].add_param(allocator, identifier, no_bytes, address)
 
-    def add_step(self, func, params, optional):
+    def add_step(self, func, params, optional=None):
         self.procedures_dict[self.current_procedure_name].add_step(func, params, optional)
 
     def insert_fixup_info(self, idx, info):
@@ -46,7 +77,7 @@ class ProcedureGenerator:
         if p.v_type != 'AKU':
             self.add_step(func, [ValInfo(p.value[0], p.v_type)], [[p.value[1], None]])
         else:
-            self.add_step(func, [ValInfo([p.value[0], p.value[1]], p.v_type)], [[None, None]])
+            self.add_step(func, [ValInfo([p.value[0], p.value[1]], p.v_type)])
         return 1
 
     """
@@ -67,16 +98,16 @@ class ProcedureGenerator:
         if identifier.v_type == 'AKU':
             if expression.v_type == 'EXPRESSION':
                 steps += 1
-                self.add_step(cg.write, ["PUT c\n"], [None])
+                self.add_step(cg.write, ["PUT c\n"])
             steps += 1
-            self.add_step(cg.load_aku_idx, [identifier.value[0], identifier.value[1]], [[None, None], None])
+            self.add_step(cg.load_aku_idx, [identifier.value[0], identifier.value[1]])
             if expression.v_type == 'EXPRESSION':
-                self.add_step(cg.write, ["PUT b\n"], [None])
-                self.add_step(cg.write, ["GET c\n"], [None])
-                self.add_step(cg.write, ["STORE b\n"], [None])
+                self.add_step(cg.write, ["PUT b\n"])
+                self.add_step(cg.write, ["GET c\n"])
+                self.add_step(cg.write, ["STORE b\n"])
                 return steps + 3
             else:
-                self.add_step(cg.write, ["PUT c\n"], [None])
+                self.add_step(cg.write, ["PUT c\n"])
                 steps += 1
             if expression.v_type == 'NUM':
                 self.add_step(cg.assign_number, [expression.value[0], identifier.value[0], True],

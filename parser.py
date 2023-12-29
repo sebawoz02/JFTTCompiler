@@ -28,9 +28,32 @@ class Parser(SlyPar):
             print("Compilation failed!")
             exit(1)
 
+    def check_if_set(self, pp, p, mode='error'):
+        if self.cg.block_level > 0:
+            mode = "conditional scope"
+        if self.pg.definition:
+            if pp.v_type == "PIDENTIFIER":
+                if not self.pg.is_set(pp):
+                    if mode == 'error':
+                        self.cg.close()
+                        print(f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
+                        print("Compilation failed!")
+                        exit(1)
+                    else:
+                        print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
+        elif pp.v_type == "PIDENTIFIER":
+            if not self.allocator.is_set(pp):
+                if mode == 'error':
+                    self.cg.close()
+                    print(f"\033[91mUse of unset variable '{pp.identifier}' in line {p.lineno}!\033[0m")
+                    print("Compilation failed!")
+                    exit(1)
+                else:
+                    print(f"WARNING! Use of unset variable in {mode}. line={p.lineno}.")
+
     @_('procedures main')
     def program_all(self, p):
-        print(p[1])
+        pass
 
     @_('procedures PROCEDURE proc_head IS declarations IN commands END')
     def procedures(self, p):
@@ -63,7 +86,9 @@ class Parser(SlyPar):
     @_('identifier ASSIGN expression ";"')
     def command(self, p) -> int:    # return number of lines of code written
         if self.pg.definition:
+            self.pg.set_variable(p[0])
             return self.pg.add_assign_step(self.cg, p[0], p[2]) + p[2].lines
+        self.allocator.set_variable(p[0])
         return self.cg.generate_assign(p[0], p[2])
 
     @_('IF condition THEN commands ELSE commands ENDIF')
@@ -73,9 +98,9 @@ class Parser(SlyPar):
             self.pg.insert_fixup_info(p[1][1], 'IF_ELSE_BEGINS')
             self.pg.insert_fixup_info(self.pg.get_curr_step_idx(), 'IF_ELSE_ENDS')
             # None params will be fixed while executing steps
-            self.pg.add_step(self.cg.block_buffer_insert, [None, None], [None, None])
-            self.pg.add_step(self.cg.fix_else_jumps, [None], [None])
-            self.pg.add_step(self.cg.flush_block_buffer, [None], [None])
+            self.pg.add_step(self.cg.block_buffer_insert, [None, None])
+            self.pg.add_step(self.cg.fix_else_jumps, [None])
+            self.pg.add_step(self.cg.flush_block_buffer, [None])
             return p[1][0] + p[3] + p[5] + 6
         total_lines = self.cg.line
         self.cg.block_buffer_insert(p[3] + 1, f'JUMP {total_lines + 1}\n')
@@ -90,7 +115,7 @@ class Parser(SlyPar):
             self.pg.insert_fixup_info(p[1][1], "IF_BEGINS")
             self.pg.insert_fixup_info(self.pg.get_curr_step_idx(), 'IF_ENDS')
             # None params will be fixed while executing steps
-            self.pg.add_step(self.cg.flush_block_buffer, [None], [None])
+            self.pg.add_step(self.cg.flush_block_buffer, [None])
             return p[1][0] + p[3] + 3
         total_lines = self.cg.line
         self.cg.flush_block_buffer(total_lines + p[3] + 1)
@@ -102,8 +127,8 @@ class Parser(SlyPar):
             self.pg.insert_fixup_info(p[1][1], "WHILE_BEGINS")
             self.pg.insert_fixup_info(self.pg.get_curr_step_idx(), 'WHILE_ENDS')
             # None params will be fixed while executing steps
-            self.pg.add_step(self.cg.flush_block_buffer, [None], [None])
-            self.pg.add_step(self.cg.write, [None], [None])
+            self.pg.add_step(self.cg.flush_block_buffer, [None])
+            self.pg.add_step(self.cg.write, [None])
             return p[1][0] + p[3] + 4
         total_lines = self.cg.line
         self.cg.flush_block_buffer(total_lines + 1)
@@ -115,7 +140,7 @@ class Parser(SlyPar):
         if self.pg.definition:
             self.pg.insert_fixup_info(self.pg.get_curr_step_idx() - p[1] - p[3][0], "REPEAT_BEGINS")
             self.pg.insert_fixup_info(self.pg.get_curr_step_idx(), 'REPEAT_ENDS')
-            self.pg.add_step(self.cg.flush_block_buffer, [None], [None])
+            self.pg.add_step(self.cg.flush_block_buffer, [None])
             return p[3][0] + p[1] + 3
         self.cg.flush_block_buffer(self.cg.line - p[1] - p[3])
         return p[1] + p[3]
@@ -127,13 +152,16 @@ class Parser(SlyPar):
     @_('READ identifier ";"')
     def command(self, p) -> int:   # return number of lines of code written
         if self.pg.definition:
+            self.pg.set_variable(p[1])
             return self.pg.add_io(self.cg.command_read, p[1])
+        self.allocator.set_variable(p[1])
         return self.cg.command_read(p[1])
 
     @_('WRITE value ";"')
     def command(self, p) -> int:    # return number of lines of code written
         if self.pg.definition:
             return self.pg.add_io(self.cg.command_write, p[1])
+        self.check_if_set(p[1], p)
         return self.cg.command_write(p[1])
 
     @_('PIDENTIFIER "(" args_decl ")"')
@@ -151,8 +179,7 @@ class Parser(SlyPar):
                 print(f"\033[91mError at line {p.lineno} in procedure '{p[0]}': Recursion is prohibited!\033[0m")
                 self.cg.close()
                 exit(1)
-            opt = [None for _ in range(len(p[2]))]
-            self.pg.add_step(self.pg.generate_procedure, [self.cg, p[0], p[2]], [None, None, opt])
+            self.pg.add_step(self.EXCEPTION_WRAPPER,  [NameError, self.pg.generate_procedure, self.cg, p[0], p[2]])
             return 1
         return self.EXCEPTION_WRAPPER(NameError, self.pg.generate_procedure, self.cg, p[0], p[2])
 
@@ -189,28 +216,30 @@ class Parser(SlyPar):
         return [*p[0], p[2]]
 
     @_('args_decl "," "T" PIDENTIFIER')
-    def args_decl(self, p) -> list[str]:     # TODO: T procedures / Recursive calls
-        return [*p[0], "T " + p[2]]
+    def args_decl(self, p) -> list[str]:
+        return [*p[0], "T" + p[2]]
 
     @_('PIDENTIFIER')
     def args_decl(self, p) -> list[str]:
         return [p[0]]
 
     @_('"T" PIDENTIFIER')
-    def args_decl(self, p) -> list[str]:     # TODO: T procedures / Recursive calls
-        return ["T " + p[0]]
+    def args_decl(self, p) -> list[str]:
+        return ["T" + p[0]]
 
     @_('args "," PIDENTIFIER')
     def args(self, p) -> list[str]:
+        self.check_if_set(ValInfo(p[2], 'PIDENTIFIER', ident=p[2]), p, mode='procedure call')
         if self.pg.definition:
-            return [*p[0], p[2]]
-        return [*p[0], self.allocator.get_index(p[2])]
+            return [*p[0], self.EXCEPTION_WRAPPER(NameError, self.pg.get_param_info, p[2])]
+        return [*p[0], self.EXCEPTION_WRAPPER(NameError, self.allocator.get_info, p[2])]
 
     @_('PIDENTIFIER')
     def args(self, p) -> list[str]:
+        self.check_if_set(ValInfo(p[0], 'PIDENTIFIER', ident=p[0]), p, mode='procedure call')
         if self.pg.definition:
-            return [p[0]]
-        return [self.allocator.get_index(p[0])]
+            return [self.EXCEPTION_WRAPPER(NameError, self.pg.get_param_info, p[0])]
+        return [self.EXCEPTION_WRAPPER(NameError, self.allocator.get_info, p[0])]
 
     @_('value')
     def expression(self, p) -> ValInfo:
@@ -218,6 +247,8 @@ class Parser(SlyPar):
 
     @_('value "+" value')
     def expression(self, p) -> ValInfo | int:
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             if p[0].v_type == 'NUM' and p[2].v_type == 'NUM':
                 return ValInfo((p[0].value[0] + p[2].value[0], None), 'NUM')
@@ -226,6 +257,8 @@ class Parser(SlyPar):
 
     @_('value "-" value')
     def expression(self, p) -> ValInfo | int:
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             if p[0].v_type == 'NUM' and p[2].v_type == 'NUM':
                 return ValInfo((max(p[0].value[0] - p[2].value[0], 0), None), 'NUM')
@@ -237,6 +270,8 @@ class Parser(SlyPar):
 
     @_('value "*" value')
     def expression(self, p) -> ValInfo | int:
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             if p[0].v_type == 'NUM' and p[2].v_type == 'NUM':
                 return ValInfo((p[0].value[0] * p[2].value[0], None), 'NUM')
@@ -245,6 +280,8 @@ class Parser(SlyPar):
 
     @_('value "/" value')
     def expression(self, p) -> ValInfo | int:    # TODO: div
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             if p[0].v_type == 'NUM' and p[2].v_type == 'NUM':
                 if p[2].value[0] == 0:
@@ -255,6 +292,8 @@ class Parser(SlyPar):
 
     @_('value "%" value')
     def expression(self, p) -> ValInfo | int:    # TODO: div
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             if p[0].v_type == 'NUM' and p[2].v_type == 'NUM':
                 if p[2].value[0] == 0:
@@ -271,10 +310,14 @@ class Parser(SlyPar):
         if self.pg.definition:
             r = self.pg.add_func_with_two_values(self.cg.op_eq, p)
             return r, self.pg.get_curr_step_idx()   # return current step idx to make jump fix easier
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         return self.cg.op_eq(p[0], p[2])      # number of lines of code written
 
     @_('value NEQ value')
     def condition(self, p):
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             r = self.pg.add_func_with_two_values(self.cg.op_neq, p)
             return r, self.pg.get_curr_step_idx()   # return current step idx to make jump fix easier
@@ -282,6 +325,8 @@ class Parser(SlyPar):
 
     @_('value GT value')
     def condition(self, p):
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             r = self.pg.add_func_with_two_values(self.cg.op_gt, p)
             return r, self.pg.get_curr_step_idx()   # return current step idx to make jump fix easier
@@ -289,6 +334,8 @@ class Parser(SlyPar):
 
     @_('value LT value')
     def condition(self, p):
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             r = self.pg.add_func_with_two_values(self.cg.op_lt, p)
             return r, self.pg.get_curr_step_idx()   # return current step idx to make jump fix easier
@@ -296,6 +343,8 @@ class Parser(SlyPar):
 
     @_('value GEQ value')
     def condition(self, p):
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             r = self.pg.add_func_with_two_values(self.cg.op_geq, p)
             return r, self.pg.get_curr_step_idx()   # return current step idx to make jump fix easier
@@ -303,6 +352,8 @@ class Parser(SlyPar):
 
     @_('value LEQ value')
     def condition(self, p):
+        self.check_if_set(p[0], p)
+        self.check_if_set(p[2], p)
         if self.pg.definition:
             r = self.pg.add_func_with_two_values(self.cg.op_leq, p)
             return r, self.pg.get_curr_step_idx()   # return current step idx to make jump fix easier
@@ -322,21 +373,23 @@ class Parser(SlyPar):
     def identifier(self, p):
         if self.pg.definition:
             return ValInfo([p[0], None], 'PIDENTIFIER')
-        return ValInfo(self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p.PIDENTIFIER), 'PIDENTIFIER')
+        return ValInfo(self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p.PIDENTIFIER),
+                       'PIDENTIFIER', ident=p[0])
 
     @_('PIDENTIFIER "[" NUM "]"')
     def identifier(self, p):
         if self.pg.definition:
             return ValInfo([p[0], int(p[2])], 'PIDENTIFIER')
         return ValInfo(self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p.PIDENTIFIER) + int(p.NUM),
-                       'PIDENTIFIER')
+                       'PIDENTIFIER', ident=p[0], idx=int(p.NUM))
 
     @_('PIDENTIFIER "[" PIDENTIFIER "]"')
     def identifier(self, p):
         if self.pg.definition:
             return ValInfo([[p[0], p[2]], (None, None)], 'AKU')
         return ValInfo([self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[0]),
-                        self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[2])], 'AKU')
+                        self.EXCEPTION_WRAPPER(NameError, self.allocator.get_index, p[2])],
+                       'AKU', ident=p[0])
 
     def error(self, p):
         self.cg.close()
