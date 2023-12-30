@@ -26,12 +26,19 @@ import argparse
 # - Use of int as array/array as int
 
 
-if __name__ == '__main__':
-    arg_pars = argparse.ArgumentParser(description="JFTT Compiler 2023 Sebastian Woźniak")
-    arg_pars.add_argument('input_file', help='Input file')
-    arg_pars.add_argument('output_file', nargs='?', default=None, help='Output file (optional)')
-    arg_pars.add_argument('--Wno-unset', action='store_true'
-                          , help='Disable unset warnings. (Errors still active)')
+if __name__ == "__main__":
+    arg_pars = argparse.ArgumentParser(
+        description="JFTT Compiler 2023 Sebastian Woźniak"
+    )
+    arg_pars.add_argument("input_file", help="Input file")
+    arg_pars.add_argument(
+        "output_file", nargs="?", default=None, help="Output file (optional)"
+    )
+    arg_pars.add_argument(
+        "--Wno-unset",
+        action="store_true",
+        help="Disable unset warnings. (Errors still active)",
+    )
 
     args = arg_pars.parse_args()
     warnings = []
@@ -46,7 +53,7 @@ if __name__ == '__main__':
     par = Parser(out, warnings)
 
     try:
-        with open(src, 'r') as file:
+        with open(src, "r") as file:
             code = file.read()
     except FileNotFoundError:
         print(f"File '{src}' not found.")

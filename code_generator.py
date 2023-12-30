@@ -1,8 +1,10 @@
 from code_generator_functions import arithmetic, assign, blocks, io, logical
 
 
-# Calculates the quickest way from 1 to x using only SHL, INC or DEC
 def reach_target_number(x, y=0):
+    """
+    Calculates the quickest way from 1 to x using only SHL, INC or DEC
+    """
     operations = []
     while x != 1:
         if x == y:
@@ -27,7 +29,7 @@ class CodeGenerator:
 
     def __init__(self, out):
         self.line = 0
-        self.code_file = open(out, 'w')
+        self.code_file = open(out, "w")
         self.block_level = 0
         self.block_buffer = []
         # registers used to store/load
@@ -36,6 +38,13 @@ class CodeGenerator:
         self.last_used_address_register = ""
 
     def write(self, string):
+        """
+        Writes a string to the code file, either directly or by appending it to
+        the block buffer if the block level is not zero.
+        Increments the line counter.
+        :param string: string to write
+        :return: Returns 1 to indicate the success of write. ( num of lines written)
+        """
         if self.block_level != 0:
             self.block_buffer[self.block_level - 1].append(string)
         else:
@@ -44,24 +53,39 @@ class CodeGenerator:
         return 1
 
     def close(self):
+        """
+        Writes a "HALT" instruction to the code file.
+        Closes the code file.
+        """
         self.write("HALT\n")
         self.code_file.close()
 
     def get_number_in_register(self, number, register):
-        if register == 'address':     # LOAD/STORE
-            if number == 0:     # reset one of the registers
+        """
+        Manages loading a number into a specified register.
+        Handles both address and data registers.
+        Utilizes the pick_better_register function to optimize register selection.
+        :param number: number to get into register
+        :param register: id or type
+        :return:
+        """
+        # If working with address register
+        if register == "address":
+            if number == 0:  # reset one of the registers
                 if self.h_register > self.g_register:
                     self.write("RST g\n")
-                    self.last_used_address_register = 'g'
+                    self.last_used_address_register = "g"
                     self.g_register = 0
                 else:
                     self.write("RST h\n")
-                    self.last_used_address_register = 'h'
+                    self.last_used_address_register = "h"
                     self.h_register = 0
                 return 1
 
             # else check if h->number is quicker or g->number
-            register, path = self.pick_better_register(number, self.h_register, self.g_register)
+            register, path = self.pick_better_register(
+                number, self.h_register, self.g_register
+            )
             self.last_used_address_register = register
             lines = 0
             if not isinstance(path, tuple):
@@ -75,6 +99,7 @@ class CodeGenerator:
                 lines += 1
             return lines
 
+        # If working with data register
         self.write(f"RST {register}\n")
         lines = 1
         if number != 0:
@@ -87,6 +112,15 @@ class CodeGenerator:
         return lines
 
     def pick_better_register(self, number, h, g):
+        """
+        Determines the better register (h or g) and the optimal path for
+        loading a number into that register. Uses the reach_target_number
+        function to calculate the operations required for reaching the target num.
+        :param number: number to reach
+        :param h: register h current value
+        :param g: register g current value
+        :return: str - register, list - path
+        """
         ph = reach_target_number(number, h)
         pg = reach_target_number(number, g)
         if isinstance(ph, tuple):
@@ -99,10 +133,10 @@ class CodeGenerator:
             pg_len = len(pg) + 2
         if pg_len > ph_len:
             self.h_register = number
-            return 'h', ph
+            return "h", ph
         else:
             self.g_register = number
-            return 'g', pg
+            return "g", pg
 
     """
     ASSIGN
@@ -140,13 +174,13 @@ class CodeGenerator:
     ARITHMETICAL OPERATIONS
     """
 
-    def add_sub(self, value1, value2, mode='add') -> (None, str, int):
+    def add_sub(self, value1, value2, mode="add") -> (None, str, int):
         return arithmetic.add_sub(self, value1, value2, mode)
 
     def multiply(self, value1, value2) -> (None, str, int):
         return arithmetic.multiply(self, value1, value2)
 
-    def divide(self, value1, value2, mode='div') -> (None, str, int):
+    def divide(self, value1, value2, mode="div") -> (None, str, int):
         return arithmetic.divide(self, value1, value2, mode)
 
     """

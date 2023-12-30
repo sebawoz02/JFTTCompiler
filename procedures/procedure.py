@@ -6,6 +6,7 @@ class GenStep:
     """
     A class that is a function/step on the way to generating a complete procedure
     """
+
     def __init__(self, func, params, optional):
         self.func = func
         self.params = params
@@ -15,17 +16,18 @@ class GenStep:
     A monstrous function with a simple purpose. 
     Replace all prepared parameters with their addresses and run the function.
     """
+
     def execute(self, params_dict: dict) -> int | ValInfo:
         par = copy.copy(self.params)
 
         for i in range(len(par)):
-
             if isinstance(par[i], list):
                 for j in range(len(par[i])):
                     if isinstance(par[i][j], list):
                         for k in range(len(par[i][j])):
                             if par[i][j][k] in params_dict.keys():
                                 par[i][j][k] = params_dict[par[i][j][k]]["idx"]
+
                     elif isinstance(par[i][j], dict) and par[i][j]["name"] in params_dict.keys():
                         par[i][j]["idx"] = params_dict[par[i][j]["name"]]["idx"]
                         if par[i][j]["type"] != params_dict[par[i][j]["name"]]["type"]:
@@ -65,6 +67,7 @@ class Procedure:
         if identifier in self.params.keys():
             print(f"\033[91mDouble declaration of '{identifier}' in procedure '{self.name}'!\033[0m")
             raise NameError
+
         if allocator.cur_idx + no_bytes >= (1 << 62):
             print(f"\033[91mAllocation error. Out of memory!\033[0m")
             raise NameError
@@ -79,8 +82,14 @@ class Procedure:
             no_bytes = -1
         elif no_bytes > 1:
             t = "T"
-            s = [False]*no_bytes
-        self.params[identifier] = {"name": identifier, "idx": address, "set": s, "type": t, "size": no_bytes}
+            s = [False] * no_bytes
+        self.params[identifier] = {
+            "name": identifier,
+            "idx": address,
+            "set": s,
+            "type": t,
+            "size": no_bytes,
+        }
         if address == -1:
             self.head_declared_params.append(identifier)
         else:
@@ -126,39 +135,73 @@ class Procedure:
             step = self.gen_steps[i]
             if isinstance(step, str):
                 match step:
-                    case 'ELSE_BEGINS':
+                    case "ELSE_BEGINS":
                         if_else_fix_idx[block_level - 1] = fixup_lines[block_level - 1]
-                    case 'IF_ELSE_BEGINS':
-                        block_level = case_begins(block_level, fixup_lines, if_else_fix_idx, while_fix_idx, prev_len)
-                    case 'IF_ELSE_ENDS':
+                    case "IF_ELSE_BEGINS":
+                        block_level = case_begins(
+                            block_level,
+                            fixup_lines,
+                            if_else_fix_idx,
+                            while_fix_idx,
+                            prev_len,
+                        )
+                    case "IF_ELSE_ENDS":
                         # Fix params
                         block_level -= 1
-                        self.gen_steps[i + 1].params = [if_else_fix_idx[block_level] + 1,
-                                                        f"JUMP {cg.line}\n"]
-                        self.gen_steps[i + 2].params = [if_else_fix_idx[block_level] + 1]
-                        self.gen_steps[i + 3].params = \
-                            [cg.line - (fixup_lines[block_level] - if_else_fix_idx[block_level]) + 1]
+                        self.gen_steps[i + 1].params = [
+                            if_else_fix_idx[block_level] + 1,
+                            f"JUMP {cg.line}\n",
+                        ]
+                        self.gen_steps[i + 2].params = [
+                            if_else_fix_idx[block_level] + 1
+                        ]
+                        self.gen_steps[i + 3].params = [
+                            cg.line
+                            - (fixup_lines[block_level] - if_else_fix_idx[block_level])
+                            + 1
+                        ]
                         fixup_lines.pop()
                         if_else_fix_idx.pop()
-                    case 'IF_BEGINS':
-                        block_level = case_begins(block_level, fixup_lines, if_else_fix_idx, while_fix_idx, prev_len)
-                    case 'IF_ENDS':
+                    case "IF_BEGINS":
+                        block_level = case_begins(
+                            block_level,
+                            fixup_lines,
+                            if_else_fix_idx,
+                            while_fix_idx,
+                            prev_len,
+                        )
+                    case "IF_ENDS":
                         block_level -= 1
                         self.gen_steps[i + 1].params = [cg.line]
                         fixup_lines.pop()
-                    case 'WHILE_BEGINS':
-                        block_level = case_begins(block_level, fixup_lines, if_else_fix_idx, while_fix_idx, prev_len)
-                    case 'WHILE_ENDS':
+                    case "WHILE_BEGINS":
+                        block_level = case_begins(
+                            block_level,
+                            fixup_lines,
+                            if_else_fix_idx,
+                            while_fix_idx,
+                            prev_len,
+                        )
+                    case "WHILE_ENDS":
                         block_level -= 1
                         self.gen_steps[i + 1].params = [cg.line + 1]
-                        self.gen_steps[i + 2].params = \
-                            [f"JUMP {cg.line - fixup_lines[block_level] - while_fix_idx[block_level]}\n"]
+                        self.gen_steps[i + 2].params = [
+                            f"JUMP {cg.line - fixup_lines[block_level] - while_fix_idx[block_level]}\n"
+                        ]
                         fixup_lines.pop()
-                    case 'REPEAT_BEGINS':
-                        block_level = case_begins(block_level, fixup_lines, if_else_fix_idx, while_fix_idx, prev_len)
-                    case 'REPEAT_ENDS':
+                    case "REPEAT_BEGINS":
+                        block_level = case_begins(
+                            block_level,
+                            fixup_lines,
+                            if_else_fix_idx,
+                            while_fix_idx,
+                            prev_len,
+                        )
+                    case "REPEAT_ENDS":
                         block_level -= 1
-                        self.gen_steps[i + 1].params = [cg.line - fixup_lines[block_level]]
+                        self.gen_steps[i + 1].params = [
+                            cg.line - fixup_lines[block_level]
+                        ]
                         fixup_lines.pop()
 
             else:
