@@ -36,6 +36,7 @@ class GenStep:
                             par[i][j] += self.optional[i][j]
 
             elif isinstance(par[i], ValInfo):
+                par[i] = copy.copy(par[i])
                 if isinstance(par[i].value, list):
                     for j in range(len(par[i].value)):
                         if par[i].value[j] in params_dict.keys():
@@ -98,7 +99,6 @@ class Procedure:
         if len(params) != len(self.head_declared_params):
             print(f"\033[91mNot enough params in procedure call!\033[0m")
             raise NameError
-
         for i in range(len(params)):
             self.params[self.head_declared_params[i]]["idx"] = params[i]["idx"]
             self.params[self.head_declared_params[i]]["set"] = params[i]["set"]

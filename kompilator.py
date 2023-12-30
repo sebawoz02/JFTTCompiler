@@ -6,7 +6,7 @@ import argparse
 # ex1 - OK
 # ex2 - OK
 # ex3 - OK
-# ex4 - NOT OK, wychodzenie poza range przy mnożeniu??
+# ex4 - OK
 # ex5 - OK
 # ex6 - OK
 # ex7 - OK
@@ -25,8 +25,6 @@ import argparse
 # - Double array -> a[b[1]]
 # - Use of int as array/array as int
 
-# Optional todo:
-# - smarter registry management h
 
 if __name__ == "__main__":
     arg_pars = argparse.ArgumentParser(
