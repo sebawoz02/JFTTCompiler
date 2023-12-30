@@ -12,12 +12,11 @@ class GenStep:
         self.params = params
         self.optional = optional
 
-    """
-    A monstrous function with a simple purpose. 
-    Replace all prepared parameters with their addresses and run the function.
-    """
-
     def execute(self, params_dict: dict) -> int | ValInfo:
+        """
+        A monstrous function with a simple purpose.
+        Replace all prepared parameters with their addresses and run the function.
+        """
         par = copy.copy(self.params)
 
         for i in range(len(par)):

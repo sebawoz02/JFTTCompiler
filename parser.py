@@ -38,7 +38,8 @@ class Parser(SlyPar):
 
     @_("procedures main")
     def program_all(self, p):
-        pass
+        if "debug" in self.warn:
+            print(f"Lines: {p[1] + 1}")
 
     @_("procedures PROCEDURE proc_head IS declarations IN commands END")
     def procedures(self, p):

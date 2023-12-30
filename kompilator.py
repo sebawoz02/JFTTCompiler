@@ -37,13 +37,20 @@ if __name__ == "__main__":
     arg_pars.add_argument(
         "--Wno-unset",
         action="store_true",
-        help="Disable unset warnings. (Errors still active)",
+        help="Disable 'unset' warnings. (Errors still active)",
+    )
+    arg_pars.add_argument(
+        "-d", "--debug",
+        action="store_true",
+        help="Turn on debug info"
     )
 
     args = arg_pars.parse_args()
     warnings = []
     if not args.Wno_unset:
         warnings.append("unset")
+    if args.debug:
+        warnings.append("debug")
     out = "out.mr"
     if args.output_file:
         out = args.output_file

@@ -33,8 +33,8 @@ class CodeGenerator:
         self.block_level = 0
         self.block_buffer = []
         # registers used to store/load
-        self.h_register = 0
-        self.g_register = 0
+        self.h_register = -1
+        self.g_register = -1
         self.last_used_address_register = ""
 
     def write(self, string):
@@ -72,15 +72,20 @@ class CodeGenerator:
         # If working with address register
         if register == "address":
             if number == 0:  # reset one of the registers
+                lines = 0
                 if self.h_register > self.g_register:
-                    self.write("RST g\n")
+                    if self.g_register != 0:
+                        self.write("RST g\n")
+                        lines += 1
                     self.last_used_address_register = "g"
                     self.g_register = 0
                 else:
-                    self.write("RST h\n")
+                    if self.h_register != 0:
+                        self.write("RST h\n")
+                        lines += 1
                     self.last_used_address_register = "h"
                     self.h_register = 0
-                return 1
+                return lines
 
             # else check if h->number is quicker or g->number
             register, path = self.pick_better_register(
