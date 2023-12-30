@@ -2,9 +2,12 @@ from code_generator_functions import arithmetic, assign, blocks, io, logical
 
 
 # Calculates the quickest way from 1 to x using only SHL, INC or DEC
-def reach_target_number(x):
+def reach_target_number(x, y=0):
     operations = []
     while x != 1:
+        if x == y:
+            return operations[::-1], x
+
         if x % 2 == 0:
             x //= 2
             operations.append("SHL")
@@ -27,6 +30,10 @@ class CodeGenerator:
         self.code_file = open(out, 'w')
         self.block_level = 0
         self.block_buffer = []
+        # registers used to store/load
+        self.h_register = 0
+        self.g_register = 0
+        self.last_used_address_register = ""
 
     def write(self, string):
         if self.block_level != 0:
@@ -41,6 +48,33 @@ class CodeGenerator:
         self.code_file.close()
 
     def get_number_in_register(self, number, register):
+        if register == 'address':     # LOAD/STORE
+            if number == 0:     # reset one of the registers
+                if self.h_register > self.g_register:
+                    self.write("RST g\n")
+                    self.last_used_address_register = 'g'
+                    self.g_register = 0
+                else:
+                    self.write("RST h\n")
+                    self.last_used_address_register = 'h'
+                    self.h_register = 0
+                return 1
+
+            # else check if h->number is quicker or g->number
+            register, path = self.pick_better_register(number, self.h_register, self.g_register)
+            self.last_used_address_register = register
+            lines = 0
+            if not isinstance(path, tuple):
+                self.write(f"RST {register}\n")
+                self.write(f"INC {register}\n")
+                lines += 2
+            else:
+                path = path[0]
+            for operation in path:
+                self.write(operation + f" {register}\n")
+                lines += 1
+            return lines
+
         self.write(f"RST {register}\n")
         lines = 1
         if number != 0:
@@ -51,6 +85,24 @@ class CodeGenerator:
                 self.write(operation + f" {register}\n")
                 lines += 1
         return lines
+
+    def pick_better_register(self, number, h, g):
+        ph = reach_target_number(number, h)
+        pg = reach_target_number(number, g)
+        if isinstance(ph, tuple):
+            ph_len = len(ph[0])
+        else:
+            ph_len = len(ph) + 2
+        if isinstance(pg, tuple):
+            pg_len = len(pg[0])
+        else:
+            pg_len = len(pg) + 2
+        if pg_len > ph_len:
+            self.h_register = number
+            return 'h', ph
+        else:
+            self.g_register = number
+            return 'g', pg
 
     """
     ASSIGN

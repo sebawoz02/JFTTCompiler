@@ -4,8 +4,8 @@ from value import ValInfo
 def _prep_registers(cg, value1: ValInfo, value2: ValInfo):
     lines = 0
     if value2.v_type == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value2.value, 'h') + 2
-        cg.write("LOAD h\n")
+        lines += cg.get_number_in_register(value2.value, 'address') + 2
+        cg.write(f"LOAD {cg.last_used_address_register}\n")
         cg.write("PUT c\n")
     elif value2.v_type == 'AKU':
         lines += cg.load_aku_idx(value2.value[0], value2.value[1]) + 2
@@ -14,8 +14,8 @@ def _prep_registers(cg, value1: ValInfo, value2: ValInfo):
     else:
         lines += cg.get_number_in_register(value2.value, 'c')
     if value1.v_type == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value1.value, 'h') + 2
-        cg.write("LOAD h\n")
+        lines += cg.get_number_in_register(value1.value, 'address') + 2
+        cg.write(f"LOAD {cg.last_used_address_register}\n")
         cg.write("PUT b\n")
     elif value1.v_type == 'AKU':
         lines += cg.load_aku_idx(value1.value[0], value1.value[1]) + 2
@@ -35,8 +35,8 @@ def add_sub(cg, value1: ValInfo, value2: ValInfo, mode='add') -> ValInfo:
             return ValInfo(max(value1.value - value2.value, 0), 'NUM', 0)
     lines = 0
     if value2.v_type == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value2.value, 'h') + 2
-        cg.write("LOAD h\n")
+        lines += cg.get_number_in_register(value2.value, 'address') + 2
+        cg.write(f"LOAD {cg.last_used_address_register}\n")
         cg.write("PUT c\n")
     elif value2.v_type == 'AKU':
         lines += cg.load_aku_idx(value2.value[0], value2.value[1]) + 2
@@ -45,8 +45,8 @@ def add_sub(cg, value1: ValInfo, value2: ValInfo, mode='add') -> ValInfo:
     else:
         lines += cg.get_number_in_register(value2.value, 'c')
     if value1.v_type == 'PIDENTIFIER':
-        lines += cg.get_number_in_register(value1.value, 'h') + 1
-        cg.write("LOAD h\n")
+        lines += cg.get_number_in_register(value1.value, 'address') + 1
+        cg.write(f"LOAD {cg.last_used_address_register}\n")
     elif value1.v_type == 'AKU':
         lines += cg.load_aku_idx(value1.value[0], value1.value[1]) + 1
         cg.write("LOAD a\n")
