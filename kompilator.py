@@ -25,6 +25,8 @@ import argparse
 # - Double array -> a[b[1]]
 # - Use of int as array/array as int
 
+# Optional todo:
+# - smarter registry management h
 
 if __name__ == "__main__":
     arg_pars = argparse.ArgumentParser(
