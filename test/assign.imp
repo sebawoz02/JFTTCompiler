@@ -1,8 +1,0 @@
-PROGRAM IS
-  m, n
-IN
-    m := 13;
-    WRITE m;
-    n := 5;
-    WRITE n;
-END
