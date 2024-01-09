@@ -27,7 +27,8 @@ def assign_identifier(cg, idx1, idx2, address_in_c=False):
 
 
 def assign_aku(cg, idx1, idx2, idx3, address_in_c=False):
-    lines = cg.load_aku_idx(idx2, idx3)
+    lines = cg.load_aku_idx(idx2, idx3) + 1
+    cg.write("LOAD a\n")
     if address_in_c:
         cg.write("STORE c\n")
         return lines + 1
