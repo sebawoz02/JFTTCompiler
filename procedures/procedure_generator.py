@@ -129,7 +129,7 @@ class ProcedureGenerator:
     Add all steps needed to generate assign inside procedure
     """
 
-    def add_assign_step(self, cg, identifier: ValInfo, expression: ValInfo):
+    def add_assign_step(self, cg, identifier: ValInfo, expression: ValInfo, lineno: int):
         steps = 0
         if identifier.v_type == "AKU":
             if expression.v_type == "EXPRESSION":
@@ -159,12 +159,21 @@ class ProcedureGenerator:
                     [expression.value[1], identifier.value[1], None],
                 )
             elif expression.v_type == "PIDENTIFIER":
+                if not self.is_set(expression.identifier):
+                    print(f"\033[91mUse of unset variable '{expression.identifier}' at line {lineno}\033[0m")
+                    raise NameError
                 self.add_step(
                     cg.assign_identifier,
                     [identifier.value[0], expression.value[0], True],
                     [identifier.value[1], expression.value[1], None],
                 )
             else:
+                if not self.is_set(expression.identifier[0]):
+                    print(f"\033[91mUse of unset variable '{expression.identifier[0]}' at line {lineno}\033[0m")
+                    raise NameError
+                if not self.is_set(expression.identifier[1]):
+                    print(f"\033[91mUse of unset variable '{expression.identifier[1]}' at line {lineno}\033[0m")
+                    raise NameError
                 if expression.value[1] == (None, None):
                     self.add_step(
                         cg.assign_aku,

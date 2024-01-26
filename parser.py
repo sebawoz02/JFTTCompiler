@@ -73,7 +73,7 @@ class Parser(SlyPar):
     def command(self, p) -> int:  # return number of lines of code written
         if self.pg.definition:
             self.pg.set_variable(p[0])
-            return self.pg.add_assign_step(self.cg, p[0], p[2]) + p[2].lines
+            return self.EXCEPTION_WRAPPER(NameError, self.pg.add_assign_step, self.cg, p[0], p[2], p.lineno) + p[2].lines
         self.allocator.set_variable(p[0])
         return self.cg.generate_assign(p[0], p[2])
 
@@ -183,7 +183,7 @@ class Parser(SlyPar):
     @_('declarations "," PIDENTIFIER')
     def declarations(self, p) -> None:
         if self.pg.definition:
-            self.pg.add_param(self.allocator, p[2], 1, address=self.allocator.cur_idx)
+            self.EXCEPTION_WRAPPER(NameError, self.pg.add_param, self.allocator, p[2], 1, self.allocator.cur_idx)
             return
         self.EXCEPTION_WRAPPER(NameError, self.allocator.allocate, 1, p.PIDENTIFIER)
 
